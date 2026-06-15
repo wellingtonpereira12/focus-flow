@@ -1197,3 +1197,115 @@ input[type="range"]::-webkit-slider-thumb:hover {
   transform: scale(1.2);
 }
 .app-logo-img { width: 36px; height: 36px; border-radius: 12px; object-fit: cover; box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2); }
+/* Pinned Reminders */
+.pinned-reminders-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 32px 0 32px;
+  flex-shrink: 0;
+}
+.pinned-reminder-card {
+  background: var(--surface-1);
+  border: 1px solid var(--accent-goal);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.pinned-reminder-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
+.pinned-reminder-content svg {
+  color: var(--accent-goal);
+  flex-shrink: 0;
+}
+.btn-unpin {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: 0.2s;
+  flex-shrink: 0;
+}
+.btn-unpin:hover {
+  background: var(--border-hover);
+  color: var(--text-primary);
+}
+
+/* Input Mode Tabs */
+.input-row-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.input-mode-tabs {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+.mode-tab {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 20px;
+  transition: 0.2s;
+}
+.mode-tab:hover {
+  color: var(--text-primary);
+  background: var(--surface-2);
+}
+.mode-tab.active {
+  background: var(--accent-goal);
+  color: #fff;
+}
+
+/* Reminder Stream Card styling */
+.thought-card.reminder {
+  border-left-color: var(--accent-goal);
+}
+.thought-card.reminder .thought-text {
+  font-weight: 500;
+}
+
+.btn-expand-reminders {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px 0;
+  margin-left: 12px;
+  transition: color 0.2s;
+  align-self: flex-start;
+}
+.btn-expand-reminders:hover {
+  color: var(--text-primary);
+}

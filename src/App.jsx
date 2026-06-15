@@ -112,12 +112,21 @@ const translationsDict = {
     coachInputPlaceholder: "Chat with your coach...",
     coachThinking: "Coach is typing...",
     coachSendBtn: "Send",
-    coachGreetingText: "Hi! I see you set a new goal: '{goal}'. How can I help you break this down into smaller steps to get started?"
+    coachGreetingText: "Hi! I see you set a new goal: '{goal}'. How can I help you break this down into smaller steps to get started?",
+    modeThought: "Thought",
+    modeReminder: "Reminder",
+    unpinReminder: "Unpin"
   }
 };
 
 // Sleek Inline SVG Icons
 const Icons = {
+  Pin: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="17" x2="12" y2="22"></line>
+      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.68V6a3 3 0 1 0-6 0v4.68a2 2 0 0 1-1.11 1.87l-1.78.9A2 2 0 0 0 5 15.24Z"></path>
+    </svg>
+  ),
   Brain: () => (
     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-3.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z"></path>
@@ -197,6 +206,16 @@ const Icons = {
     <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
     </svg>
+  ),
+  ChevronUp: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="18 15 12 9 6 15"></polyline>
+    </svg>
+  ),
+  ChevronDown: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
   )
 };
 
@@ -215,6 +234,8 @@ export default function App() {
   });
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [inputMode, setInputMode] = useState('thought'); // 'thought' or 'reminder'
+  const [remindersExpanded, setRemindersExpanded] = useState(false);
 
   // Gemini API Key state
   const [geminiKey, setGeminiKey] = useState(() => {
@@ -387,14 +408,15 @@ export default function App() {
       setAiMessages([]);
       setCoachOpen(false);
     } else {
-      // Create new thought
-      const newThought = {
+      // Create new thought or reminder
+      const newEntry = {
         id: now,
         text: inputText.trim(),
         timestamp: timestampStr,
-        category: 'thought',
+        category: inputMode,
       };
-      setThoughts(prev => [...prev, newThought]);
+      setThoughts(prev => [...prev, newEntry]);
+      setInputMode('thought'); // always reset to thought after sending
     }
 
     setInputText('');
@@ -415,6 +437,10 @@ export default function App() {
     if (opening && aiMessages.length === 0 && activeGoal) {
       triggerAiGreeting(activeGoal.text);
     }
+  };
+
+  const handleUnpin = (id) => {
+    setThoughts(prev => prev.map(t => t.id === id ? { ...t, unpinned: true } : t));
   };
 
   const handleGoalMet = () => {
@@ -707,6 +733,43 @@ ${userText}
           </div>
         )}
 
+        {/* Pinned Reminders */}
+        {activeGoal && thoughts.filter(t => t.category === 'reminder' && !t.unpinned).length > 0 && (
+          <div className="pinned-reminders-container">
+            {(() => {
+              const activeReminders = thoughts.filter(t => t.category === 'reminder' && !t.unpinned);
+              const visibleReminders = (remindersExpanded || activeReminders.length === 1) 
+                ? activeReminders 
+                : [activeReminders[activeReminders.length - 1]];
+
+              return (
+                <>
+                  {visibleReminders.map(rem => (
+                    <div key={rem.id} className="pinned-reminder-card">
+                      <div className="pinned-reminder-content">
+                        <Icons.Pin />
+                        <span>{rem.text}</span>
+                      </div>
+                      <button onClick={() => handleUnpin(rem.id)} className="btn-unpin">
+                        <Icons.SidebarClose /> {lang === 'pt' ? 'Desfixar' : t.unpinReminder}
+                      </button>
+                    </div>
+                  ))}
+                  {activeReminders.length > 1 && (
+                    <button 
+                      className="btn-expand-reminders" 
+                      onClick={() => setRemindersExpanded(!remindersExpanded)}
+                    >
+                      {remindersExpanded ? <Icons.ChevronUp /> : <Icons.ChevronDown />}
+                      <span>{remindersExpanded ? (lang === 'pt' ? 'Esconder lembretes' : 'Hide reminders') : (lang === 'pt' ? `Ver todos os ${activeReminders.length} lembretes` : `View all ${activeReminders.length} reminders`)}</span>
+                    </button>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
+
         {/* Thought Flow Stream */}
         <div className={`stream-container ${activeGoal ? 'has-goal' : ''}`}>
           {thoughts.length === 0 ? (
@@ -725,10 +788,12 @@ ${userText}
                         {item.category === 'thought' && <Icons.ThoughtIcon />}
                         {item.category === 'goal' && <Icons.GoalIcon />}
                         {item.category === 'goal-met' && <Icons.Sparkles />}
+                        {item.category === 'reminder' && <Icons.Pin />}
                         <span style={{ marginLeft: '4px' }}>
                           {item.category === 'thought' && t.thoughtBadge}
                           {item.category === 'goal' && t.goalBadge}
                           {item.category === 'goal-met' && t.goalMetBtn}
+                          {item.category === 'reminder' && (lang === 'pt' ? 'Lembrete' : t.modeReminder)}
                         </span>
                       </span>
                       <span className="thought-time">{item.timestamp}</span>
@@ -792,12 +857,29 @@ ${userText}
             </div>
           )}
 
-          <div className="input-row">
-            <textarea
-              ref={textareaRef}
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleTextareaKeyDown}
+          <div className="input-row-wrapper">
+            {activeGoal && (
+              <div className="input-mode-tabs">
+                <button 
+                  className={`mode-tab ${inputMode === 'thought' ? 'active' : ''}`}
+                  onClick={() => setInputMode('thought')}
+                >
+                  <Icons.ThoughtIcon /> {lang === 'pt' ? 'Pensamento' : t.modeThought}
+                </button>
+                <button 
+                  className={`mode-tab ${inputMode === 'reminder' ? 'active' : ''}`}
+                  onClick={() => setInputMode('reminder')}
+                >
+                  <Icons.Pin /> {lang === 'pt' ? 'Lembrete' : t.modeReminder}
+                </button>
+              </div>
+            )}
+            <div className="input-row">
+              <textarea
+                ref={textareaRef}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                onKeyDown={handleTextareaKeyDown}
               placeholder={activeGoal ? t.inputPlaceholder : t.inputPlaceholderGoal}
               className={`thought-textarea ${!activeGoal ? 'pulse-goal' : ''}`}
               rows={1}
@@ -817,6 +899,7 @@ ${userText}
             <button onClick={handleSend} className="btn-send">
               <Icons.Send />
             </button>
+            </div>
           </div>
           <div className="footer-settings">
             <span>{t.shortcutHint}</span>

@@ -128,9 +128,11 @@ const Icons = {
     </svg>
   ),
   Brain: () => (
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1 0-3.12 3 3 0 0 1 0-3.88 2.5 2.5 0 0 1 0-3.12A2.5 2.5 0 0 1 9.5 2Z"></path>
-      <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 0-3.12 3 3 0 0 0 0-3.88 2.5 2.5 0 0 0 0-3.12A2.5 2.5 0 0 0 14.5 2Z"></path>
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      {/* Ponto central de foco (Focus) */}
+      <circle cx="12" cy="12" r="2.5" fill="currentColor"></circle>
+      {/* Fluxo fluido em espiral que se estabiliza no centro (representação do des-TDAH / Destedeagar) */}
+      <path d="M12 2a10 10 0 0 0-7.07 17.07C7.8 21.9 12.2 21.9 15 19.5c2.5-2.2 3-6 1-8.5s-5-3-7-1-2.5 4.5 0 6.5 5 1.5 6.5-1c1.5-2.5 1-6.5-1-8.5" />
     </svg>
   ),
   SidebarOpen: () => (
@@ -702,7 +704,12 @@ ${userText}
             </div>
           </div>
           <div className="header-right">
-            <FocusTimer translations={t} />
+            <FocusTimer 
+              translations={t} 
+              activeGoal={activeGoal}
+              goalStartTime={goalStartTime}
+              thoughts={thoughts}
+            />
             <div className="theme-switcher">
               <button onClick={() => setTheme('light')} className={`btn-theme ${theme === 'light' ? 'active' : ''}`}><Icons.Sun /></button>
               <button onClick={() => setTheme('dark')} className={`btn-theme ${theme === 'dark' ? 'active' : ''}`}><Icons.Moon /></button>

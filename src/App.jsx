@@ -218,6 +218,48 @@ const Icons = {
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="6 9 12 15 18 9"></polyline>
     </svg>
+  ),
+  Plus: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  ),
+  Search: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+  ),
+  DotsHorizontal: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="1.5"></circle>
+      <circle cx="19" cy="12" r="1.5"></circle>
+      <circle cx="5" cy="12" r="1.5"></circle>
+    </svg>
+  ),
+  Edit: () => (
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9"></path>
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+    </svg>
+  ),
+  ChevronLeft: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6"></polyline>
+    </svg>
+  ),
+  ChevronRight: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  ),
+  Menu: () => (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
   )
 };
 
@@ -238,6 +280,32 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [inputMode, setInputMode] = useState('thought'); // 'thought' or 'reminder'
   const [remindersExpanded, setRemindersExpanded] = useState(false);
+
+  // Estados da Barra Lateral e Multi-sessões de Metas
+  const [sessions, setSessions] = useState(() => {
+    if (localStorage.getItem('focusflow_savesession') === 'false') return [];
+    try {
+      const saved = localStorage.getItem('focusflow_sessions');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [activeSessionId, setActiveSessionId] = useState(() => {
+    if (localStorage.getItem('focusflow_savesession') === 'false') return null;
+    return localStorage.getItem('focusflow_active_session_id') || null;
+  });
+
+  const [sidebarExpanded, setSidebarExpanded] = useState(() => {
+    const saved = localStorage.getItem('focusflow_sidebar_expanded');
+    return saved === null ? true : saved === 'true';
+  });
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeMenuId, setActiveMenuId] = useState(null);
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [renameText, setRenameText] = useState('');
 
   // Gemini API Key state
   const [geminiKey, setGeminiKey] = useState(() => {
@@ -307,14 +375,23 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('focusflow_savesession', String(saveSession));
+    localStorage.setItem('focusflow_sidebar_expanded', String(sidebarExpanded));
     if (!saveSession) {
       localStorage.removeItem('focusflow_thoughts');
       localStorage.removeItem('focusflow_active_goal');
       localStorage.removeItem('focusflow_goal_start_time');
       localStorage.removeItem('focusflow_ai_messages');
+      localStorage.removeItem('focusflow_sessions');
+      localStorage.removeItem('focusflow_active_session_id');
     } else {
       localStorage.setItem('focusflow_thoughts', JSON.stringify(thoughts));
       localStorage.setItem('focusflow_ai_messages', JSON.stringify(aiMessages));
+      localStorage.setItem('focusflow_sessions', JSON.stringify(sessions));
+      if (activeSessionId) {
+        localStorage.setItem('focusflow_active_session_id', activeSessionId.toString());
+      } else {
+        localStorage.removeItem('focusflow_active_session_id');
+      }
       if (activeGoal) {
         localStorage.setItem('focusflow_active_goal', JSON.stringify(activeGoal));
         localStorage.setItem('focusflow_goal_start_time', goalStartTime.toString());
@@ -323,7 +400,25 @@ export default function App() {
         localStorage.removeItem('focusflow_goal_start_time');
       }
     }
-  }, [saveSession, thoughts, activeGoal, aiMessages, goalStartTime]);
+  }, [saveSession, thoughts, activeGoal, aiMessages, goalStartTime, sessions, activeSessionId, sidebarExpanded]);
+
+  // Sincroniza as alterações do chat ativo de volta para a lista global de sessões
+  useEffect(() => {
+    if (!activeSessionId) return;
+    setSessions(prev => prev.map(s => {
+      if (s.id.toString() === activeSessionId.toString()) {
+        return {
+          ...s,
+          text: activeGoal ? activeGoal.text : s.text,
+          status: activeGoal ? (activeGoal.status || s.status) : s.status,
+          thoughts: thoughts,
+          aiMessages: aiMessages,
+          goalStartTime: goalStartTime
+        };
+      }
+      return s;
+    }));
+  }, [thoughts, activeGoal, aiMessages, goalStartTime, activeSessionId]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -385,6 +480,77 @@ export default function App() {
     }
   };
 
+  // Alterna a meta ativa
+  const handleSwitchSession = (sessionId) => {
+    const target = sessions.find(s => s.id.toString() === sessionId.toString());
+    if (target) {
+      setActiveSessionId(sessionId.toString());
+      setActiveGoal({
+        id: target.id,
+        text: target.text,
+        timestamp: target.timestamp || '',
+        category: 'goal',
+        status: target.status || 'active'
+      });
+      setGoalStartTime(target.goalStartTime || target.id);
+      setThoughts(target.thoughts || []);
+      setAiMessages(target.aiMessages || []);
+      setCoachOpen(false);
+    }
+  };
+
+  // Limpa a tela para cadastrar uma nova meta
+  const handleCreateNewSession = () => {
+    setActiveSessionId(null);
+    setActiveGoal(null);
+    setGoalStartTime(null);
+    setThoughts([]);
+    setAiMessages([]);
+    setCoachOpen(false);
+  };
+
+  // Renomeia o título de uma meta
+  const handleRenameSession = (sessionId, newText) => {
+    if (!newText.trim()) return;
+    setSessions(prev => prev.map(s => {
+      if (s.id.toString() === sessionId.toString()) {
+        return { ...s, text: newText.trim() };
+      }
+      return s;
+    }));
+    
+    if (activeSessionId?.toString() === sessionId.toString()) {
+      setActiveGoal(prev => prev ? { ...prev, text: newText.trim() } : null);
+    }
+    setEditingSessionId(null);
+    setRenameText('');
+  };
+
+  // Exclui uma meta permanentemente
+  const handleDeleteSession = (sessionId) => {
+    const confirmMsg = lang === 'pt' 
+      ? 'Tem certeza que deseja excluir esta meta permanentemente?' 
+      : 'Are you sure you want to delete this goal permanently?';
+    if (!window.confirm(confirmMsg)) return;
+
+    setSessions(prev => prev.filter(s => s.id.toString() !== sessionId.toString()));
+    if (activeSessionId?.toString() === sessionId.toString()) {
+      handleCreateNewSession();
+    }
+    setActiveMenuId(null);
+  };
+
+  // Fixa / desfixa uma meta
+  const handleTogglePinSession = (sessionId) => {
+    setSessions(prev => prev.map(s => {
+      if (s.id.toString() === sessionId.toString()) {
+        return { ...s, pinned: !s.pinned };
+      }
+      return s;
+    }));
+    setActiveMenuId(null);
+  };
+
   const handleSend = () => {
     if (!inputText.trim()) return;
 
@@ -402,11 +568,25 @@ export default function App() {
         text: inputText.trim(),
         timestamp: timestampStr,
         category: 'goal',
+        status: 'active'
       };
+      
+      const newSession = {
+        id: now,
+        text: inputText.trim(),
+        timestamp: timestampStr,
+        status: 'active',
+        pinned: false,
+        goalStartTime: now,
+        thoughts: [newGoal],
+        aiMessages: []
+      };
+
+      setSessions(prev => [newSession, ...prev]);
+      setActiveSessionId(now.toString());
       setActiveGoal(newGoal);
       setGoalStartTime(now);
-      setThoughts(prev => [...prev, newGoal]);
-      // Reset coach messages for new goal — AI will greet on first open
+      setThoughts([newGoal]);
       setAiMessages([]);
       setCoachOpen(false);
     } else {
@@ -450,17 +630,31 @@ export default function App() {
       hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
     
-    // Log the completion as a thought
-    setThoughts(prev => [...prev, { 
+    const metEntry = { 
       id: Date.now(), 
       text: `${activeGoal.text} (Concluído)`, 
       timestamp: timestampStr, 
       category: 'goal-met' 
-    }]);
+    };
+
+    if (activeSessionId) {
+      setSessions(prev => prev.map(s => {
+        if (s.id.toString() === activeSessionId.toString()) {
+          return {
+            ...s,
+            status: 'completed',
+            thoughts: [...thoughts, metEntry]
+          };
+        }
+        return s;
+      }));
+    }
 
     setActiveGoal(null);
     setGoalStartTime(null);
+    setThoughts([]);
     setAiMessages([]); // Reset AI context
+    setActiveSessionId(null);
     if (textareaRef.current) textareaRef.current.focus();
   };
 
@@ -622,8 +816,208 @@ ${userText}
     return thoughts.filter(t => t.category === category).length;
   };
 
+  // Event listener global para fechar os menus de três pontinhos
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      setActiveMenuId(null);
+    };
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, []);
+
+  const renderSessionItem = (item) => {
+    const isActive = activeSessionId?.toString() === item.id.toString();
+    const isEditing = editingSessionId?.toString() === item.id.toString();
+
+    return (
+      <div 
+        key={item.id} 
+        className={`session-item-row ${isActive ? 'active' : ''}`}
+        onClick={() => !isEditing && handleSwitchSession(item.id)}
+      >
+        <div className="session-item-main">
+          <Icons.GoalIcon />
+          
+          {isEditing ? (
+            <input
+              type="text"
+              className="session-rename-input"
+              value={renameText}
+              onChange={(e) => setRenameText(e.target.value)}
+              onBlur={() => handleRenameSession(item.id, renameText)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleRenameSession(item.id, renameText);
+                if (e.key === 'Escape') setEditingSessionId(null);
+              }}
+              autoFocus
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <span className="session-item-text" title={item.text}>
+              {item.text}
+            </span>
+          )}
+        </div>
+
+        {!isEditing && (
+          <div className="session-item-actions" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className={`btn-session-action ${item.pinned ? 'pinned' : ''}`}
+              onClick={() => handleTogglePinSession(item.id)}
+              title={item.pinned ? (lang === 'pt' ? 'Desfixar' : 'Unpin') : (lang === 'pt' ? 'Fixar' : 'Pin')}
+            >
+              <Icons.Pin />
+            </button>
+            
+            <div className="session-dropdown-container">
+              <button 
+                className="btn-session-action"
+                onClick={() => setActiveMenuId(activeMenuId === item.id ? null : item.id)}
+              >
+                <Icons.DotsHorizontal />
+              </button>
+
+              {activeMenuId === item.id && (
+                <div className="session-dropdown-menu">
+                  <button onClick={() => {
+                    setEditingSessionId(item.id);
+                    setRenameText(item.text);
+                    setActiveMenuId(null);
+                  }}>
+                    <Icons.Edit />
+                    <span>{lang === 'pt' ? 'Renomear' : 'Rename'}</span>
+                  </button>
+                  <button onClick={() => handleTogglePinSession(item.id)}>
+                    <Icons.Pin />
+                    <span>{item.pinned ? (lang === 'pt' ? 'Desfixar' : 'Unpin') : (lang === 'pt' ? 'Fixar' : 'Pin')}</span>
+                  </button>
+                  <button className="danger" onClick={() => handleDeleteSession(item.id)}>
+                    <Icons.Trash />
+                    <span>{lang === 'pt' ? 'Excluir' : 'Delete'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const filteredSessions = sessions.filter(s => 
+    s.text.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="app-container">
+      {/* LEFT CHATS SIDEBAR */}
+      <aside className={`chats-sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
+        {/* Toggle Button */}
+        <button 
+          className="btn-sidebar-toggle-expand" 
+          onClick={() => setSidebarExpanded(!sidebarExpanded)}
+          title={sidebarExpanded ? (lang === 'pt' ? 'Recolher barra lateral' : 'Collapse sidebar') : (lang === 'pt' ? 'Expandir barra lateral' : 'Expand sidebar')}
+        >
+          {sidebarExpanded ? <Icons.ChevronLeft /> : <Icons.ChevronRight />}
+        </button>
+
+        {/* Collapsed Sidebar Vibe */}
+        {!sidebarExpanded ? (
+          <div className="sidebar-collapsed-content">
+            <div className="sidebar-logo-icon" onClick={() => setSidebarExpanded(true)}>
+              <Icons.Brain />
+            </div>
+            
+            <button className="sidebar-icon-action" onClick={handleCreateNewSession} title={lang === 'pt' ? 'Nova meta' : 'New goal'}>
+              <Icons.Plus />
+            </button>
+            <button className="sidebar-icon-action" onClick={() => { setSidebarExpanded(true); setTimeout(() => { const search = document.querySelector('.search-input-field'); if (search) search.focus(); }, 100); }} title={lang === 'pt' ? 'Buscar metas' : 'Search goals'}>
+              <Icons.Search />
+            </button>
+            <button className="sidebar-icon-action" onClick={() => setSettingsOpen(true)} title={t.sidebarToggleOpen}>
+              <Icons.SidebarOpen />
+            </button>
+          </div>
+        ) : (
+          /* Expanded Sidebar Vibe */
+          <div className="sidebar-expanded-content">
+            <div className="sidebar-header-row">
+              <div className="logo-group">
+                <Icons.Brain />
+                <span className="logo-text">{t.appTitle}</span>
+              </div>
+            </div>
+
+            <button className="btn-new-chat-pomo" onClick={handleCreateNewSession}>
+              <Icons.Plus />
+              <span>{lang === 'pt' ? 'Nova meta' : 'New goal'}</span>
+            </button>
+
+            <div className="search-chats-container">
+              <Icons.Search />
+              <input
+                type="text"
+                className="search-input-field"
+                placeholder={lang === 'pt' ? 'Buscar metas...' : 'Search goals...'}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button className="btn-clear-search" onClick={() => setSearchQuery('')}>✖</button>
+              )}
+            </div>
+
+            <div className="sidebar-scrollable-lists">
+              {/* 1. SEÇÃO FIXADOS */}
+              {filteredSessions.filter(s => s.pinned).length > 0 && (
+                <div className="sidebar-section-list">
+                  <h4 className="section-title">{lang === 'pt' ? 'Fixadas' : 'Pinned'}</h4>
+                  <div className="section-items">
+                    {filteredSessions.filter(s => s.pinned).map(renderSessionItem)}
+                  </div>
+                </div>
+              )}
+
+              {/* 2. SEÇÃO RECENTES (Ativas, não fixadas) */}
+              <div className="sidebar-section-list">
+                <h4 className="section-title">{lang === 'pt' ? 'Recentes' : 'Recent'}</h4>
+                <div className="section-items">
+                  {filteredSessions.filter(s => !s.pinned && s.status !== 'completed').length === 0 ? (
+                    <div className="empty-section-text">{lang === 'pt' ? 'Nenhuma meta recente' : 'No recent goals'}</div>
+                  ) : (
+                    filteredSessions.filter(s => !s.pinned && s.status !== 'completed').map(renderSessionItem)
+                  )}
+                </div>
+              </div>
+
+              {/* 3. SEÇÃO METAS FINALIZADAS */}
+              {filteredSessions.filter(s => s.status === 'completed').length > 0 && (
+                <div className="sidebar-section-list">
+                  <h4 className="section-title">{lang === 'pt' ? 'Metas Finalizadas' : 'Completed Goals'}</h4>
+                  <div className="section-items">
+                    {filteredSessions.filter(s => s.status === 'completed').map(renderSessionItem)}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom Panel */}
+            <div className="sidebar-bottom-panel">
+              <div className="user-profile-row" onClick={() => setSettingsOpen(true)}>
+                <div className="user-avatar">
+                  {t.appTitle.substring(0, 2).toUpperCase()}
+                </div>
+                <div className="user-details">
+                  <span className="user-name">{t.appTitle}</span>
+                  <span className="user-status">Zen Mode</span>
+                </div>
+                <Icons.SidebarOpen />
+              </div>
+            </div>
+          </div>
+        )}
+      </aside>
+
       {/* Retractable Settings Overlay */}
       <div 
         className={`sidebar-overlay ${settingsOpen ? 'visible' : ''}`}
@@ -698,10 +1092,15 @@ ${userText}
       <main className="main-content">
         <header className="main-header">
           <div className="header-left">
-            <div className="logo">
-              <Icons.Brain />
-              <span>{t.appTitle}</span>
-            </div>
+            {!sidebarExpanded ? (
+              <button 
+                className="btn-sidebar-toggle-left" 
+                onClick={() => setSidebarExpanded(true)}
+                title={lang === 'pt' ? 'Abrir barra lateral' : 'Open sidebar'}
+              >
+                <Icons.Menu />
+              </button>
+            ) : null}
           </div>
           <div className="header-right">
             <FocusTimer 

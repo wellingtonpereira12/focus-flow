@@ -383,7 +383,7 @@ export default function FocusTimer({ translations, activeGoal, goalStartTime, th
                   </button>
                   <button className="btn-modal-secondary" onClick={handleSkipClick}>
                     {isConfirmingSkip 
-                      ? (lang === 'pt' ? 'Tem certeza? Clique para confirmar ➔' : 'Are you sure? Click to confirm ➔') 
+                      ? (lang === 'pt' ? 'Tem certeza que deseja pular? Clique para confirmar' : 'Are you sure you want to skip? Click to confirm') 
                       : (lang === 'pt' ? 'Ignorar Pausa (Skip)' : 'Skip Break')}
                   </button>
                 </div>
@@ -403,7 +403,7 @@ export default function FocusTimer({ translations, activeGoal, goalStartTime, th
                 <div className="modal-actions">
                   <button className="btn-modal-secondary" onClick={handleSkipClick}>
                     {isConfirmingSkip 
-                      ? (lang === 'pt' ? 'Tem certeza? Clique para confirmar ➔' : 'Are you sure? Click to confirm ➔') 
+                      ? (lang === 'pt' ? 'Tem certeza que deseja pular? Clique para confirmar' : 'Are you sure you want to skip? Click to confirm') 
                       : (lang === 'pt' ? 'Pular Descanso (Skip)' : 'Skip Rest')}
                   </button>
                 </div>

@@ -479,21 +479,26 @@ body {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   padding: 0;
   border-radius: 50%;
 }
 .timer-action-btn:hover {
-  background: var(--border);
+  background: var(--border-hover);
   color: var(--text-primary);
 }
 .timer-action-btn.active {
-  color: var(--accent-thought);
+  color: #fff;
+  background: var(--accent-thought);
+}
+.light-theme .timer-action-btn.active {
+  color: #fff;
+  background: #0284c7;
 }
 
 /* Active Goal Banner */
@@ -611,6 +616,7 @@ body {
 /* Thought Cards */
 .thought-card-wrapper {
   animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  width: 100%;
 }
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -621,11 +627,14 @@ body {
   background: var(--surface-1);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   transition: border-color 0.3s;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 .thought-card:hover {
   border-color: var(--border-hover);
@@ -633,10 +642,12 @@ body {
 
 .thought-content-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 .thought-meta {
   display: flex;
@@ -1325,7 +1336,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: rgba(10, 15, 30, 0.75);
+  background: rgba(10, 15, 30, 0.95); /* darker solid overlay */
   backdrop-filter: blur(12px);
   display: flex;
   align-items: center;
@@ -1349,6 +1360,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   text-align: center;
   animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 1 !important;
 }
 
 .light-theme .pomodoro-modal-card {
@@ -1551,4 +1563,514 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 .timer-input-edit[type=number] {
   -moz-appearance: textfield;
+}
+
+/* ==========================================================================
+   Chats Sidebar Component Styles
+   ========================================================================== */
+.chats-sidebar {
+  height: 100vh;
+  background: var(--surface-1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid var(--border);
+  position: relative;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.chats-sidebar.expanded {
+  width: 260px;
+}
+
+.chats-sidebar.collapsed {
+  width: 60px;
+}
+
+/* Sidebar Toggle Expand Button */
+.btn-sidebar-toggle-expand {
+  position: absolute;
+  right: -12px;
+  top: 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 110;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  outline: none;
+}
+
+.btn-sidebar-toggle-expand:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+  transform: scale(1.1);
+}
+
+/* Collapsed State Styles */
+.sidebar-collapsed-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 0;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+.sidebar-logo-icon {
+  color: var(--accent-thought);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-logo-icon:hover {
+  transform: rotate(15deg) scale(1.1);
+}
+
+.sidebar-icon-action {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sidebar-icon-action:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+/* Expanded State Styles */
+.sidebar-expanded-content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.sidebar-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.logo-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--accent-thought);
+}
+
+.logo-text {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 1.15rem;
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.01em;
+}
+
+/* Novo Chat Button */
+.btn-new-chat-pomo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 12px;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.btn-new-chat-pomo:hover {
+  background: var(--border);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Search Bar Container */
+.search-chats-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  transition: all 0.2s ease;
+}
+
+.search-chats-container svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.search-chats-container:focus-within {
+  border-color: var(--accent-thought);
+}
+
+.search-input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  margin-left: 8px;
+  width: 100%;
+}
+
+.btn-clear-search {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 2px 4px;
+  transition: color 0.2s ease;
+}
+
+.btn-clear-search:hover {
+  color: var(--text-primary);
+}
+
+/* Scrollable Sessions Area */
+.sidebar-scrollable-lists {
+  flex: 1;
+  overflow-y: auto;
+  margin: 8px -16px;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar-section-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.section-title {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.section-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.empty-section-text {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 6px 4px;
+}
+
+/* Session Item Row styling */
+.session-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: 1px solid transparent;
+  position: relative;
+  user-select: none;
+}
+
+.session-item-row:hover {
+  background: var(--surface-2);
+}
+
+.session-item-row.active {
+  background: var(--surface-2);
+  border-color: var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.session-item-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.session-item-main svg {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.session-item-row:hover .session-item-main svg,
+.session-item-row.active .session-item-main svg {
+  color: var(--accent-goal);
+}
+
+.session-item-text {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+
+.session-item-row:hover .session-item-text,
+.session-item-row.active .session-item-text {
+  color: var(--text-primary);
+}
+
+/* Rename Inline Input */
+.session-rename-input {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  width: 100%;
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Actions Container */
+.session-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.session-item-row:hover .session-item-actions,
+.session-item-row.active .session-item-actions {
+  opacity: 1;
+}
+
+.btn-session-action {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  outline: none;
+}
+
+.btn-session-action:hover {
+  background: var(--border);
+  color: var(--text-primary);
+}
+
+.btn-session-action.pinned {
+  color: var(--accent-goal);
+  opacity: 1;
+}
+
+/* Absolute Dropdown Actions Menu */
+.session-dropdown-container {
+  position: relative;
+}
+
+.session-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-color);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  min-width: 130px;
+  z-index: 1000;
+  margin-top: 4px;
+}
+
+.session-dropdown-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  outline: none;
+  text-align: left;
+}
+
+.session-dropdown-menu button:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
+}
+
+.session-dropdown-menu button svg {
+  width: 14px;
+  height: 14px;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+
+.session-dropdown-menu button:hover svg {
+  color: var(--text-primary);
+}
+
+.session-dropdown-menu button.danger {
+  color: var(--danger);
+}
+
+.session-dropdown-menu button.danger:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.session-dropdown-menu button.danger svg {
+  color: var(--danger);
+}
+
+/* Sidebar Bottom Profile section */
+.sidebar-bottom-panel {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: auto;
+}
+
+.user-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-profile-row:hover {
+  background: var(--surface-2);
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--brand-gradient);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-status {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.user-profile-row > svg {
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.user-profile-row:hover > svg {
+  color: var(--text-primary);
+}
+
+/* Header sidebar toggle menu button (on left, when collapsed) */
+.btn-sidebar-toggle-left {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.btn-sidebar-toggle-left:hover {
+  background: var(--surface-2);
+  color: var(--text-primary);
 }

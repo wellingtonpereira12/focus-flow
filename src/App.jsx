@@ -5,7 +5,7 @@ import FocusTimer from './components/FocusTimer';
 // Translation dictionaries
 const translationsDict = {
   pt: {
-    appTitle: "FocusFlow",
+    appTitle: "Destedeagar",
     logoSub: "Espaço Zen de Foco",
     soundTitle: "Sons de Fundo",
     soundBrown: "Ruído Marrom",

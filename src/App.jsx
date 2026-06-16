@@ -306,6 +306,7 @@ export default function App() {
   const [activeMenuId, setActiveMenuId] = useState(null);
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [renameText, setRenameText] = useState('');
+  const [sessionToDelete, setSessionToDelete] = useState(null);
 
   // Gemini API Key state
   const [geminiKey, setGeminiKey] = useState(() => {
@@ -528,16 +529,17 @@ export default function App() {
 
   // Exclui uma meta permanentemente
   const handleDeleteSession = (sessionId) => {
-    const confirmMsg = lang === 'pt' 
-      ? 'Tem certeza que deseja excluir esta meta permanentemente?' 
-      : 'Are you sure you want to delete this goal permanently?';
-    if (!window.confirm(confirmMsg)) return;
+    setSessionToDelete(sessionId);
+    setActiveMenuId(null);
+  };
 
-    setSessions(prev => prev.filter(s => s.id.toString() !== sessionId.toString()));
-    if (activeSessionId?.toString() === sessionId.toString()) {
+  const confirmDeleteSession = () => {
+    if (!sessionToDelete) return;
+    setSessions(prev => prev.filter(s => s.id.toString() !== sessionToDelete.toString()));
+    if (activeSessionId?.toString() === sessionToDelete.toString()) {
       handleCreateNewSession();
     }
-    setActiveMenuId(null);
+    setSessionToDelete(null);
   };
 
   // Fixa / desfixa uma meta
@@ -1314,6 +1316,29 @@ ${userText}
       </main>
 
 
+      {sessionToDelete && (
+        <div className="pomodoro-overlay-backdrop">
+          <div className="pomodoro-modal-card">
+            <div className="modal-content-stage">
+              <div className="modal-icon">⚠️</div>
+              <h2>{lang === 'pt' ? 'Excluir Meta?' : 'Delete Goal?'}</h2>
+              <p className="modal-desc">
+                {lang === 'pt' 
+                  ? 'Tem certeza que deseja excluir esta meta permanentemente? Esta ação não pode ser desfeita.' 
+                  : 'Are you sure you want to delete this goal permanently? This action cannot be undone.'}
+              </p>
+              <div className="modal-actions">
+                <button className="btn-modal-danger" onClick={confirmDeleteSession}>
+                  {lang === 'pt' ? 'Sim, Excluir' : 'Yes, Delete'}
+                </button>
+                <button className="btn-modal-secondary" onClick={() => setSessionToDelete(null)}>
+                  {lang === 'pt' ? 'Cancelar' : 'Cancel'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

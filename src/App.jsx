@@ -260,6 +260,16 @@ const Icons = {
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
     </svg>
   ),
+  Maximize: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+    </svg>
+  ),
+  Minimize: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 14h6v6m10-6h-6v6M4 10h6V4m10 6h-6V4"></path>
+    </svg>
+  ),
   Menu: () => (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -319,6 +329,7 @@ export default function App() {
   const [discoveryContent, setDiscoveryContent] = useState('');
   const [discoveryMode, setDiscoveryMode] = useState('edit'); // 'edit' or 'present'
   const [selectedImage, setSelectedImage] = useState(null);
+  const [discoveryFullscreen, setDiscoveryFullscreen] = useState(false);
 
   const editorRef = useRef(null);
   const canvasRef = useRef(null);
@@ -517,6 +528,7 @@ export default function App() {
       setAiMessages(target.aiMessages || []);
       setDiscoveryContent(target.discoveryContent || '');
       setDiscoveryOpen(false);
+      setDiscoveryFullscreen(false);
       setCoachOpen(false);
     }
   };
@@ -530,6 +542,7 @@ export default function App() {
     setAiMessages([]);
     setDiscoveryContent('');
     setDiscoveryOpen(false);
+    setDiscoveryFullscreen(false);
     setCoachOpen(false);
   };
 
@@ -681,6 +694,7 @@ export default function App() {
     setAiMessages([]); // Reset AI context
     setDiscoveryContent('');
     setDiscoveryOpen(false);
+    setDiscoveryFullscreen(false);
     setActiveSessionId(null);
     if (textareaRef.current) textareaRef.current.focus();
   };
@@ -1361,7 +1375,7 @@ ${userText}
 
         {/* Discovery Workspace overlay */}
         {discoveryOpen && activeGoal && (
-          <div className="discovery-workspace">
+          <div className={`discovery-workspace ${discoveryFullscreen ? 'fullscreen' : ''}`}>
             <div className="discovery-header">
               <div className="discovery-meta">
                 <span className="discovery-badge">{lang === 'pt' ? 'DESCOBRIR' : 'DISCOVER'}</span>
@@ -1382,7 +1396,15 @@ ${userText}
                     {lang === 'pt' ? 'Apresentação' : 'Present'}
                   </button>
                 </div>
-                <button className="btn-close-discovery" onClick={() => { setDiscoveryOpen(false); setSelectedImage(null); }}>
+                <button 
+                  className="btn-close-discovery" 
+                  onClick={() => setDiscoveryFullscreen(!discoveryFullscreen)}
+                  title={discoveryFullscreen ? (lang === 'pt' ? 'Sair da tela cheia' : 'Exit full screen') : (lang === 'pt' ? 'Tela cheia' : 'Full screen')}
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  {discoveryFullscreen ? <Icons.Minimize /> : <Icons.Maximize />}
+                </button>
+                <button className="btn-close-discovery" onClick={() => { setDiscoveryOpen(false); setDiscoveryFullscreen(false); setSelectedImage(null); }}>
                   <Icons.SidebarClose />
                 </button>
               </div>

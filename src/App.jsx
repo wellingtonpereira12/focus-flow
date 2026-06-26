@@ -313,6 +313,22 @@ export default function App() {
     return localStorage.getItem('focusflow_active_session_id') || null;
   });
 
+  // Get active session data from localStorage directly to initialize states consistently
+  const initialActiveSession = (() => {
+    if (localStorage.getItem('focusflow_savesession') === 'false') return null;
+    try {
+      const activeId = localStorage.getItem('focusflow_active_session_id');
+      const savedSessions = localStorage.getItem('focusflow_sessions');
+      if (activeId && savedSessions) {
+        const parsedSessions = JSON.parse(savedSessions);
+        return parsedSessions.find(s => s.id.toString() === activeId.toString()) || null;
+      }
+    } catch (e) {
+      console.warn("Error parsing initial active session:", e);
+    }
+    return null;
+  })();
+
   const [sidebarExpanded, setSidebarExpanded] = useState(() => {
     const saved = localStorage.getItem('focusflow_sidebar_expanded');
     return saved === null ? true : saved === 'true';
@@ -327,12 +343,16 @@ export default function App() {
   // Discovery Workspace States
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
   const [discoveryContent, setDiscoveryContent] = useState(() => {
+    if (initialActiveSession) {
+      return initialActiveSession.discoveryContent || '';
+    }
     if (localStorage.getItem('focusflow_savesession') === 'false') return '';
     return localStorage.getItem('focusflow_discovery_content') || '';
   });
   const [discoveryMode, setDiscoveryMode] = useState('edit'); // 'edit' or 'present'
   const [selectedImage, setSelectedImage] = useState(null);
   const [discoveryFullscreen, setDiscoveryFullscreen] = useState(false);
+  const [zoomedImageSrc, setZoomedImageSrc] = useState(null);
 
   const editorRef = useRef(null);
   const canvasRef = useRef(null);
@@ -348,18 +368,33 @@ export default function App() {
 
   // State: Goals & Thoughts
   const [activeGoal, setActiveGoal] = useState(() => {
+    if (initialActiveSession) {
+      return {
+        id: initialActiveSession.id,
+        text: initialActiveSession.text,
+        timestamp: initialActiveSession.timestamp || '',
+        category: 'goal',
+        status: initialActiveSession.status || 'active'
+      };
+    }
     if (localStorage.getItem('focusflow_savesession') === 'false') return null;
     const savedGoal = localStorage.getItem('focusflow_active_goal');
     return savedGoal ? JSON.parse(savedGoal) : null;
   });
 
   const [goalStartTime, setGoalStartTime] = useState(() => {
+    if (initialActiveSession) {
+      return initialActiveSession.goalStartTime || initialActiveSession.id;
+    }
     if (localStorage.getItem('focusflow_savesession') === 'false') return null;
     const savedTime = localStorage.getItem('focusflow_goal_start_time');
     return savedTime ? parseInt(savedTime) : null;
   });
 
   const [thoughts, setThoughts] = useState(() => {
+    if (initialActiveSession) {
+      return initialActiveSession.thoughts || [];
+    }
     if (localStorage.getItem('focusflow_savesession') === 'false') return [];
     try {
       const savedThoughts = localStorage.getItem('focusflow_thoughts');
@@ -371,6 +406,9 @@ export default function App() {
 
   // State: AI Coach
   const [aiMessages, setAiMessages] = useState(() => {
+    if (initialActiveSession) {
+      return initialActiveSession.aiMessages || [];
+    }
     if (localStorage.getItem('focusflow_savesession') === 'false') return [];
     try {
       const savedMsgs = localStorage.getItem('focusflow_ai_messages');
@@ -1036,6 +1074,21 @@ ${userText}
 
   // Pointer Handlers for Laser
   const handlePointerDown = (e) => {
+    if (e.button !== 0) return; // Only left click
+    
+    // Check if there is an image underneath
+    const canvas = canvasRef.current;
+    if (canvas) {
+      canvas.style.pointerEvents = 'none';
+      const element = document.elementFromPoint(e.clientX, e.clientY);
+      canvas.style.pointerEvents = 'auto';
+      
+      if (element && element.tagName === 'IMG') {
+        setZoomedImageSrc(element.src);
+        return; // Don't start drawing laser line
+      }
+    }
+
     isDrawingRef.current = true;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -1762,6 +1815,25 @@ ${userText}
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {zoomedImageSrc && (
+        <div 
+          className="zoomed-image-overlay"
+          onClick={(e) => {
+            if (e.button === 0) {
+              setZoomedImageSrc(null);
+            }
+          }}
+        >
+          <div className="zoomed-image-container">
+            <img 
+              src={zoomedImageSrc} 
+              alt="Zoomed" 
+              className="zoomed-image"
+            />
           </div>
         </div>
       )}

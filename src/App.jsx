@@ -352,7 +352,6 @@ export default function App() {
   const [discoveryMode, setDiscoveryMode] = useState('edit'); // 'edit' or 'present'
   const [selectedImage, setSelectedImage] = useState(null);
   const [discoveryFullscreen, setDiscoveryFullscreen] = useState(false);
-  const [zoomedImageSrc, setZoomedImageSrc] = useState(null);
 
   const editorRef = useRef(null);
   const canvasRef = useRef(null);
@@ -1075,19 +1074,6 @@ ${userText}
   // Pointer Handlers for Laser
   const handlePointerDown = (e) => {
     if (e.button !== 0) return; // Only left click
-    
-    // Check if there is an image underneath
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.style.pointerEvents = 'none';
-      const element = document.elementFromPoint(e.clientX, e.clientY);
-      canvas.style.pointerEvents = 'auto';
-      
-      if (element && element.tagName === 'IMG') {
-        setZoomedImageSrc(element.src);
-        return; // Don't start drawing laser line
-      }
-    }
 
     isDrawingRef.current = true;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -1095,6 +1081,42 @@ ${userText}
     const y = e.clientY - rect.top;
     pointsRef.current.push({ x, y, age: 0 });
     pointerPosRef.current = { x, y };
+  };
+
+  const handleDoubleClick = (e) => {
+    if (discoveryMode !== 'present') return;
+    
+    // Check if double clicked on an image inside the editor sheet
+    if (editorRef.current) {
+      const images = Array.from(editorRef.current.querySelectorAll('img'));
+      let clickedImage = null;
+      for (const img of images) {
+        const imgRect = img.getBoundingClientRect();
+        if (
+          e.clientX >= imgRect.left &&
+          e.clientX <= imgRect.right &&
+          e.clientY >= imgRect.top &&
+          e.clientY <= imgRect.bottom
+        ) {
+          clickedImage = img;
+          break;
+        }
+      }
+
+      if (clickedImage) {
+        // Toggle zoom for the clicked image, remove zoom from others
+        images.forEach(img => {
+          if (img === clickedImage) {
+            img.classList.toggle('presentation-zoomed');
+          } else {
+            img.classList.remove('presentation-zoomed');
+          }
+        });
+      } else {
+        // Double clicked outside, clear all zooms
+        images.forEach(img => img.classList.remove('presentation-zoomed'));
+      }
+    }
   };
 
   const handlePointerMove = (e) => {
@@ -1486,7 +1508,13 @@ ${userText}
                 <div className="mode-toggle-group">
                   <button 
                     className={`btn-mode-toggle ${discoveryMode === 'edit' ? 'active' : ''}`}
-                    onClick={() => { setDiscoveryMode('edit'); setSelectedImage(null); }}
+                    onClick={() => { 
+                      if (editorRef.current) {
+                        editorRef.current.querySelectorAll('img.presentation-zoomed').forEach(img => img.classList.remove('presentation-zoomed'));
+                      }
+                      setDiscoveryMode('edit'); 
+                      setSelectedImage(null); 
+                    }}
                   >
                     {lang === 'pt' ? 'Edição' : 'Edit'}
                   </button>
@@ -1505,7 +1533,17 @@ ${userText}
                 >
                   {discoveryFullscreen ? <Icons.Minimize /> : <Icons.Maximize />}
                 </button>
-                <button className="btn-close-discovery" onClick={() => { setDiscoveryOpen(false); setDiscoveryFullscreen(false); setSelectedImage(null); }}>
+                <button 
+                  className="btn-close-discovery" 
+                  onClick={() => { 
+                    if (editorRef.current) {
+                      editorRef.current.querySelectorAll('img.presentation-zoomed').forEach(img => img.classList.remove('presentation-zoomed'));
+                    }
+                    setDiscoveryOpen(false); 
+                    setDiscoveryFullscreen(false); 
+                    setSelectedImage(null); 
+                  }}
+                >
                   <Icons.SidebarClose />
                 </button>
               </div>
@@ -1559,7 +1597,7 @@ ${userText}
                 </>
               ) : (
                 <div className="presentation-hint">
-                  💡 {lang === 'pt' ? 'Modo Apresentação: clique e arraste para destacar com rastro laser vermelho.' : 'Presentation Mode: click and drag to highlight with laser pointer.'}
+                  💡 {lang === 'pt' ? 'Modo Apresentação: clique/arraste para o laser. Duplo clique na imagem para zoom.' : 'Presentation Mode: click/drag for laser. Double click image to zoom.'}
                 </div>
               )}
             </div>
@@ -1587,6 +1625,7 @@ ${userText}
                     onPointerDown={handlePointerDown}
                     onPointerMove={handlePointerMove}
                     onPointerUp={handlePointerUp}
+                    onDoubleClick={handleDoubleClick}
                   />
                 )}
               </div>
@@ -1819,24 +1858,6 @@ ${userText}
         </div>
       )}
 
-      {zoomedImageSrc && (
-        <div 
-          className="zoomed-image-overlay"
-          onClick={(e) => {
-            if (e.button === 0) {
-              setZoomedImageSrc(null);
-            }
-          }}
-        >
-          <div className="zoomed-image-container">
-            <img 
-              src={zoomedImageSrc} 
-              alt="Zoomed" 
-              className="zoomed-image"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

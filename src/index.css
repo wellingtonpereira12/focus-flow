@@ -294,6 +294,7 @@ body {
   font-size: 0.9rem;
   line-height: 1.5;
   max-width: 85%;
+  white-space: pre-wrap;
 }
 .coach-msg.ai {
   align-self: flex-start;
@@ -791,14 +792,20 @@ body {
   color: #fff;
 }
 
-/* Coach popup anchored above input area */
-.input-area-container {
+/* Middle workspace wrapping thoughts, banners, and coach */
+.workspace-middle {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   position: relative;
+  overflow: hidden;
 }
+
+/* Coach popup anchored inside the middle workspace */
 .coach-popup {
   position: absolute;
-  bottom: calc(100% + 12px);
-  right: 0;
+  bottom: 24px;
+  right: 24px;
   width: 360px;
   height: 460px;
   background: var(--surface-1);
@@ -812,6 +819,47 @@ body {
   box-shadow: 0 24px 64px rgba(0,0,0,0.35);
   animation: popupIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 200;
+}
+
+.coach-popup.expanded {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 450px !important;
+  height: 100% !important;
+  border-radius: 0 !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-left: 1px solid var(--border) !important;
+  z-index: 120 !important;
+  animation: none !important;
+  box-shadow: none !important;
+  background: var(--bg-color) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Transições suaves ao expandir/recolher o Coach IA */
+.stream-container,
+.active-goal-banner,
+.pinned-reminders-container,
+.discovery-workspace {
+  transition: margin-right 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Afastar os elementos para a esquerda quando o Coach estiver expandido */
+.coach-popup.expanded ~ .stream-container,
+.coach-popup.expanded ~ .active-goal-banner,
+.coach-popup.expanded ~ .pinned-reminders-container {
+  margin-right: 450px !important;
+}
+
+/* Deslocar a tela de Descoberta quando o Coach estiver expandido no workspace */
+.workspace-middle:has(.coach-popup.expanded) ~ .discovery-workspace:not(.fullscreen) {
+  right: 450px !important;
 }
 @keyframes popupIn {
   from { opacity: 0; transform: translateY(12px) scale(0.97); }

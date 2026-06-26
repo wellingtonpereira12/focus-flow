@@ -139,6 +139,12 @@ const translationsDict = {
 
 // Sleek Inline SVG Icons
 const Icons = {
+  Close: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  ),
   Pin: () => (
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="17" x2="12" y2="22"></line>
@@ -442,7 +448,8 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiInputText, setAiInputText] = useState('');
   const [coachOpen, setCoachOpen] = useState(false);
-
+  const [coachExpanded, setCoachExpanded] = useState(false);
+  
   const [inputText, setInputText] = useState('');
   
   const [sessionStartTime] = useState(Date.now());
@@ -1568,6 +1575,8 @@ ${recentThoughtsText || '(Nenhum pensamento avulso registrado ainda)'}
           </div>
         </header>
 
+        {/* Coach Popup moved to workspace-middle */}
+
         {/* Discovery Workspace overlay */}
         {discoveryOpen && activeGoal && (
           <div className={`discovery-workspace ${discoveryFullscreen ? 'fullscreen' : ''}`}>
@@ -1742,112 +1751,24 @@ ${recentThoughtsText || '(Nenhum pensamento avulso registrado ainda)'}
           </div>
         )}
 
-        {/* Goal Banner */}
-        {activeGoal && (
-          <div className="active-goal-banner">
-            <div className="goal-banner-content">
-              <div className="goal-banner-icon"><Icons.GoalIcon /></div>
-              <div className="goal-banner-text">
-                <span className="goal-banner-label">{t.activeGoalLabel}</span>
-                <span className="goal-banner-title">{activeGoal.text}</span>
-              </div>
-            </div>
-            <button onClick={handleGoalMet} className="btn-goal-met">
-              {t.goalMetBtn}
-            </button>
-          </div>
-        )}
-
-        {/* Pinned Reminders */}
-        {activeGoal && thoughts.filter(t => t.category === 'reminder' && !t.unpinned).length > 0 && (
-          <div className="pinned-reminders-container">
-            {(() => {
-              const activeReminders = thoughts.filter(t => t.category === 'reminder' && !t.unpinned);
-              const visibleReminders = (remindersExpanded || activeReminders.length === 1) 
-                ? activeReminders 
-                : [activeReminders[activeReminders.length - 1]];
-
-              return (
-                <>
-                  {visibleReminders.map(rem => (
-                    <div key={rem.id} className="pinned-reminder-card">
-                      <div className="pinned-reminder-content">
-                        <Icons.Pin />
-                        <span>{rem.text}</span>
-                      </div>
-                      <button onClick={() => handleUnpin(rem.id)} className="btn-unpin">
-                        <Icons.SidebarClose /> {lang === 'pt' ? 'Desfixar' : t.unpinReminder}
-                      </button>
-                    </div>
-                  ))}
-                  {activeReminders.length > 1 && (
-                    <button 
-                      className="btn-expand-reminders" 
-                      onClick={() => setRemindersExpanded(!remindersExpanded)}
-                    >
-                      {remindersExpanded ? <Icons.ChevronUp /> : <Icons.ChevronDown />}
-                      <span>{remindersExpanded ? (lang === 'pt' ? 'Esconder lembretes' : 'Hide reminders') : (lang === 'pt' ? `Ver todos os ${activeReminders.length} lembretes` : `View all ${activeReminders.length} reminders`)}</span>
-                    </button>
-                  )}
-                </>
-              );
-            })()}
-          </div>
-        )}
-
-        {/* Thought Flow Stream */}
-        <div className={`stream-container ${activeGoal ? 'has-goal' : ''}`}>
-          {thoughts.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-icon"><Icons.GoalIcon /></div>
-              <h2 className="empty-title">{t.emptyTitle}</h2>
-              <p className="empty-desc">{t.emptyDesc}</p>
-            </div>
-          ) : (
-            thoughts.map((item) => (
-              <div className="thought-card-wrapper" key={item.id}>
-                <div className={`thought-card ${item.category}`}>
-                  <div className="thought-content-row">
-                    <div className="thought-meta">
-                      <span className="category-badge">
-                        {item.category === 'thought' && <Icons.ThoughtIcon />}
-                        {item.category === 'goal' && <Icons.GoalIcon />}
-                        {item.category === 'goal-met' && <Icons.Sparkles />}
-                        {item.category === 'reminder' && <Icons.Pin />}
-                        <span style={{ marginLeft: '4px' }}>
-                          {item.category === 'thought' && t.thoughtBadge}
-                          {item.category === 'goal' && t.goalBadge}
-                          {item.category === 'goal-met' && t.goalMetBtn}
-                          {item.category === 'reminder' && (lang === 'pt' ? 'Lembrete' : t.modeReminder)}
-                        </span>
-                      </span>
-                      <span className="thought-time">{item.timestamp}</span>
-                    </div>
-                    <div className="thought-text">{item.text}</div>
-                  </div>
-                  <button onClick={() => handleDeleteThought(item.id)} className="btn-delete-thought">
-                    <Icons.DeleteSmall />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
-          <div ref={streamEndRef} />
-        </div>
-
-        {/* Input Area + Coach Button */}
-        <div className="input-area-container">
-          {/* Coach Popup — anchored above input */}
+        {/* Workspace Middle Container */}
+        <div className="workspace-middle">
+          {/* Coach Popup — Anchored inside middle workspace */}
           {coachOpen && activeGoal && (
-            <div className="coach-popup">
+            <div className={`coach-popup ${coachExpanded ? 'expanded' : ''}`}>
               <div className="coach-popup-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Icons.Sparkles />
                   <span>{t.coachTitle}</span>
                 </div>
-                <button className="btn-coach-close" onClick={() => setCoachOpen(false)}>
-                  <Icons.SidebarClose />
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button className="btn-coach-close" onClick={() => setCoachExpanded(!coachExpanded)} title={coachExpanded ? (lang === 'pt' ? 'Minimizar chat' : 'Minimize chat') : (lang === 'pt' ? 'Expandir chat' : 'Expand chat')}>
+                    {coachExpanded ? <Icons.SidebarClose /> : <Icons.Maximize />}
+                  </button>
+                  <button className="btn-coach-close" onClick={() => setCoachOpen(false)}>
+                    <Icons.Close />
+                  </button>
+                </div>
               </div>
               <div className="coach-chat-stream" ref={el => { if (el) el.scrollTop = el.scrollHeight; }}>
                 {aiMessages.map(msg => (
@@ -1887,6 +1808,101 @@ ${recentThoughtsText || '(Nenhum pensamento avulso registrado ainda)'}
             </div>
           )}
 
+          {/* Goal Banner */}
+          {activeGoal && (
+            <div className="active-goal-banner">
+              <div className="goal-banner-content">
+                <div className="goal-banner-icon"><Icons.GoalIcon /></div>
+                <div className="goal-banner-text">
+                  <span className="goal-banner-label">{t.activeGoalLabel}</span>
+                  <span className="goal-banner-title">{activeGoal.text}</span>
+                </div>
+              </div>
+              <button onClick={handleGoalMet} className="btn-goal-met">
+                {t.goalMetBtn}
+              </button>
+            </div>
+          )}
+
+          {/* Pinned Reminders */}
+          {activeGoal && thoughts.filter(t => t.category === 'reminder' && !t.unpinned).length > 0 && (
+            <div className="pinned-reminders-container">
+              {(() => {
+                const activeReminders = thoughts.filter(t => t.category === 'reminder' && !t.unpinned);
+                const visibleReminders = (remindersExpanded || activeReminders.length === 1) 
+                  ? activeReminders 
+                  : [activeReminders[activeReminders.length - 1]];
+
+                return (
+                  <>
+                    {visibleReminders.map(rem => (
+                      <div key={rem.id} className="pinned-reminder-card">
+                        <div className="pinned-reminder-content">
+                          <Icons.Pin />
+                          <span>{rem.text}</span>
+                        </div>
+                        <button onClick={() => handleUnpin(rem.id)} className="btn-unpin">
+                          <Icons.SidebarClose /> {lang === 'pt' ? 'Desfixar' : t.unpinReminder}
+                        </button>
+                      </div>
+                    ))}
+                    {activeReminders.length > 1 && (
+                      <button 
+                        className="btn-expand-reminders" 
+                        onClick={() => setRemindersExpanded(!remindersExpanded)}
+                      >
+                        {remindersExpanded ? <Icons.ChevronUp /> : <Icons.ChevronDown />}
+                        <span>{remindersExpanded ? (lang === 'pt' ? 'Esconder lembretes' : 'Hide reminders') : (lang === 'pt' ? `Ver todos os ${activeReminders.length} lembretes` : `View all ${activeReminders.length} reminders`)}</span>
+                      </button>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Thought Flow Stream */}
+          <div className={`stream-container ${activeGoal ? 'has-goal' : ''}`}>
+            {thoughts.length === 0 ? (
+              <div className="empty-state">
+                <div className="empty-icon"><Icons.GoalIcon /></div>
+                <h2 className="empty-title">{t.emptyTitle}</h2>
+                <p className="empty-desc">{t.emptyDesc}</p>
+              </div>
+            ) : (
+              thoughts.map((item) => (
+                <div className="thought-card-wrapper" key={item.id}>
+                  <div className={`thought-card ${item.category}`}>
+                    <div className="thought-content-row">
+                      <div className="thought-meta">
+                        <span className="category-badge">
+                          {item.category === 'thought' && <Icons.ThoughtIcon />}
+                          {item.category === 'goal' && <Icons.GoalIcon />}
+                          {item.category === 'goal-met' && <Icons.Sparkles />}
+                          {item.category === 'reminder' && <Icons.Pin />}
+                          <span style={{ marginLeft: '4px' }}>
+                            {item.category === 'thought' && t.thoughtBadge}
+                            {item.category === 'goal' && t.goalBadge}
+                            {item.category === 'goal-met' && t.goalMetBtn}
+                            {item.category === 'reminder' && (lang === 'pt' ? 'Lembrete' : t.modeReminder)}
+                          </span>
+                        </span>
+                        <span className="thought-time">{item.timestamp}</span>
+                      </div>
+                      <div className="thought-text">{item.text}</div>
+                    </div>
+                    <button onClick={() => handleDeleteThought(item.id)} className="btn-delete-thought">
+                      <Icons.DeleteSmall />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={streamEndRef} />
+          </div>
+        </div>
+
+        <div className="input-area-container">
           <div className="input-row-wrapper">
             {activeGoal && (
               <div className="input-mode-tabs">

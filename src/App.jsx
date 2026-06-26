@@ -254,6 +254,12 @@ const Icons = {
       <polyline points="9 18 15 12 9 6"></polyline>
     </svg>
   ),
+  BookOpen: () => (
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+    </svg>
+  ),
   Menu: () => (
     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -307,6 +313,18 @@ export default function App() {
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [renameText, setRenameText] = useState('');
   const [sessionToDelete, setSessionToDelete] = useState(null);
+  
+  // Discovery Workspace States
+  const [discoveryOpen, setDiscoveryOpen] = useState(false);
+  const [discoveryContent, setDiscoveryContent] = useState('');
+  const [discoveryMode, setDiscoveryMode] = useState('edit'); // 'edit' or 'present'
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const editorRef = useRef(null);
+  const canvasRef = useRef(null);
+  const isDrawingRef = useRef(false);
+  const pointsRef = useRef([]); // Laser pointer trail points
+  const pointerPosRef = useRef({ x: -100, y: -100 });
 
   // Gemini API Key state
   const [geminiKey, setGeminiKey] = useState(() => {
@@ -414,12 +432,13 @@ export default function App() {
           status: activeGoal ? (activeGoal.status || s.status) : s.status,
           thoughts: thoughts,
           aiMessages: aiMessages,
-          goalStartTime: goalStartTime
+          goalStartTime: goalStartTime,
+          discoveryContent: discoveryContent
         };
       }
       return s;
     }));
-  }, [thoughts, activeGoal, aiMessages, goalStartTime, activeSessionId]);
+  }, [thoughts, activeGoal, aiMessages, goalStartTime, discoveryContent, activeSessionId]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -496,6 +515,8 @@ export default function App() {
       setGoalStartTime(target.goalStartTime || target.id);
       setThoughts(target.thoughts || []);
       setAiMessages(target.aiMessages || []);
+      setDiscoveryContent(target.discoveryContent || '');
+      setDiscoveryOpen(false);
       setCoachOpen(false);
     }
   };
@@ -507,6 +528,8 @@ export default function App() {
     setGoalStartTime(null);
     setThoughts([]);
     setAiMessages([]);
+    setDiscoveryContent('');
+    setDiscoveryOpen(false);
     setCoachOpen(false);
   };
 
@@ -656,6 +679,8 @@ export default function App() {
     setGoalStartTime(null);
     setThoughts([]);
     setAiMessages([]); // Reset AI context
+    setDiscoveryContent('');
+    setDiscoveryOpen(false);
     setActiveSessionId(null);
     if (textareaRef.current) textareaRef.current.focus();
   };
@@ -906,6 +931,215 @@ ${userText}
     );
   };
 
+  // Initialize editor content when workspace opens or session changes
+  useEffect(() => {
+    if (discoveryOpen && editorRef.current) {
+      if (editorRef.current.innerHTML !== discoveryContent) {
+        editorRef.current.innerHTML = discoveryContent || '';
+      }
+    }
+  }, [discoveryOpen, activeSessionId]);
+
+  // Laser pointer animation loop
+  useEffect(() => {
+    if (discoveryMode !== 'present' || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId;
+    
+    const updateSize = () => {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    
+    const render = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      const points = pointsRef.current;
+      if (points.length > 1) {
+        // Draw glow path
+        ctx.beginPath();
+        ctx.moveTo(points[0].x, points[0].y);
+        for (let i = 1; i < points.length; i++) {
+          const xc = (points[i].x + points[i - 1].x) / 2;
+          const yc = (points[i].y + points[i - 1].y) / 2;
+          ctx.quadraticCurveTo(points[i - 1].x, points[i - 1].y, xc, yc);
+        }
+        
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.85)';
+        ctx.lineWidth = 6;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 12;
+        ctx.stroke();
+        
+        // Draw head spark
+        const lastPoint = points[points.length - 1];
+        ctx.beginPath();
+        ctx.arc(lastPoint.x, lastPoint.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = '#ef4444';
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 20;
+        ctx.fill();
+      }
+      
+      // Draw cursor pointer when hover (not drawing)
+      if (!isDrawingRef.current && pointerPosRef.current.x > 0) {
+        ctx.beginPath();
+        ctx.arc(pointerPosRef.current.x, pointerPosRef.current.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.9)';
+        ctx.shadowColor = '#ef4444';
+        ctx.shadowBlur = 15;
+        ctx.fill();
+      }
+      
+      // Age trail
+      pointsRef.current = points
+        .map(p => ({ ...p, age: p.age + 1 }))
+        .filter(p => p.age < 30);
+        
+      animationFrameId = requestAnimationFrame(render);
+    };
+    
+    render();
+    
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', updateSize);
+    };
+  }, [discoveryMode]);
+
+  // Pointer Handlers for Laser
+  const handlePointerDown = (e) => {
+    isDrawingRef.current = true;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    pointsRef.current.push({ x, y, age: 0 });
+    pointerPosRef.current = { x, y };
+  };
+
+  const handlePointerMove = (e) => {
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    pointerPosRef.current = { x, y };
+    if (isDrawingRef.current) {
+      pointsRef.current.push({ x, y, age: 0 });
+    }
+  };
+
+  const handlePointerUp = () => {
+    isDrawingRef.current = false;
+  };
+
+  // Image manipulation utilities
+  const compressImage = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_SIZE = 800;
+          if (width > height) {
+            if (width > MAX_SIZE) {
+              height *= MAX_SIZE / width;
+              width = MAX_SIZE;
+            }
+          } else {
+            if (height > MAX_SIZE) {
+              width *= MAX_SIZE / height;
+              height = MAX_SIZE;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.7));
+        };
+      };
+    });
+  };
+
+  const insertImage = (base64) => {
+    const imgId = 'img-' + Date.now();
+    const imgHtml = `<img id="${imgId}" src="${base64}" class="discovery-image" style="width: 50%; display: block; margin: 10px 0;" />`;
+    if (editorRef.current) {
+      editorRef.current.focus();
+      document.execCommand('insertHTML', false, imgHtml);
+      setDiscoveryContent(editorRef.current.innerHTML);
+    }
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    if (discoveryMode !== 'edit') return;
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        // Find caret position at drop point
+        if (document.caretRangeFromPoint) {
+          const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        } else if (document.caretPositionFromPoint) {
+          const position = document.caretPositionFromPoint(e.clientX, e.clientY);
+          const range = document.createRange();
+          range.setStart(position.offsetNode, position.offset);
+          range.collapse(true);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        
+        const base64 = await compressImage(file);
+        insertImage(base64);
+      }
+    }
+  };
+
+  const handleEditorClick = (e) => {
+    if (discoveryMode !== 'edit') return;
+    if (e.target.tagName === 'IMG') {
+      setSelectedImage(e.target);
+    } else {
+      setSelectedImage(null);
+    }
+  };
+
+  const resizeSelectedImage = (percent) => {
+    if (selectedImage) {
+      selectedImage.style.width = percent + '%';
+      if (editorRef.current) {
+        setDiscoveryContent(editorRef.current.innerHTML);
+      }
+    }
+  };
+
+  const deleteSelectedImage = () => {
+    if (selectedImage) {
+      selectedImage.remove();
+      setSelectedImage(null);
+      if (editorRef.current) {
+        setDiscoveryContent(editorRef.current.innerHTML);
+      }
+    }
+  };
+
   const filteredSessions = sessions.filter(s => 
     s.text.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -1125,6 +1359,115 @@ ${userText}
           </div>
         </header>
 
+        {/* Discovery Workspace overlay */}
+        {discoveryOpen && activeGoal && (
+          <div className="discovery-workspace">
+            <div className="discovery-header">
+              <div className="discovery-meta">
+                <span className="discovery-badge">{lang === 'pt' ? 'DESCOBRIR' : 'DISCOVER'}</span>
+                <span className="discovery-goal-title">{activeGoal.text}</span>
+              </div>
+              <div className="discovery-controls">
+                <div className="mode-toggle-group">
+                  <button 
+                    className={`btn-mode-toggle ${discoveryMode === 'edit' ? 'active' : ''}`}
+                    onClick={() => { setDiscoveryMode('edit'); setSelectedImage(null); }}
+                  >
+                    {lang === 'pt' ? 'Edição' : 'Edit'}
+                  </button>
+                  <button 
+                    className={`btn-mode-toggle ${discoveryMode === 'present' ? 'active' : ''}`}
+                    onClick={() => { setDiscoveryMode('present'); setSelectedImage(null); }}
+                  >
+                    {lang === 'pt' ? 'Apresentação' : 'Present'}
+                  </button>
+                </div>
+                <button className="btn-close-discovery" onClick={() => { setDiscoveryOpen(false); setSelectedImage(null); }}>
+                  <Icons.SidebarClose />
+                </button>
+              </div>
+            </div>
+
+            <div className="discovery-toolbar">
+              {discoveryMode === 'edit' ? (
+                <>
+                  <div className="toolbar-group">
+                    <button className="toolbar-btn" onMouseDown={(e) => { e.preventDefault(); document.execCommand('bold', false, null); }} title="Negrito"><b>B</b></button>
+                    <button className="toolbar-btn" onMouseDown={(e) => { e.preventDefault(); document.execCommand('italic', false, null); }} title="Itálico"><i>I</i></button>
+                    <button className="toolbar-btn" onMouseDown={(e) => { e.preventDefault(); document.execCommand('underline', false, null); }} title="Sublinhado"><u>U</u></button>
+                  </div>
+                  <div className="toolbar-group">
+                    <button className="toolbar-btn" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertUnorderedList', false, null); }} title="Lista com Marcadores">• Lista</button>
+                    <button className="toolbar-btn" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertOrderedList', false, null); }} title="Lista Numerada">1. Lista</button>
+                  </div>
+                  <div className="toolbar-group">
+                    <label className="toolbar-btn image-upload-label" title="Inserir Imagem">
+                      🖼️ {lang === 'pt' ? 'Imagem' : 'Image'}
+                      <input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const base64 = await compressImage(file);
+                            insertImage(base64);
+                          }
+                          e.target.value = ''; // Reset input
+                        }} 
+                        style={{ display: 'none' }} 
+                      />
+                    </label>
+                  </div>
+                  {selectedImage && (
+                    <div className="toolbar-group image-controls-group">
+                      <span className="control-label">{lang === 'pt' ? 'Tamanho:' : 'Size:'}</span>
+                      <button className="toolbar-btn" onClick={() => resizeSelectedImage(25)}>25%</button>
+                      <button className="toolbar-btn" onClick={() => resizeSelectedImage(50)}>50%</button>
+                      <button className="toolbar-btn" onClick={() => resizeSelectedImage(75)}>75%</button>
+                      <button className="toolbar-btn" onClick={() => resizeSelectedImage(100)}>100%</button>
+                      <button className="toolbar-btn danger" onClick={deleteSelectedImage}>{lang === 'pt' ? 'Remover' : 'Remove'}</button>
+                    </div>
+                  )}
+                  <div className="toolbar-group" style={{ marginLeft: 'auto' }}>
+                    <button className="toolbar-btn danger" onClick={() => { if (window.confirm(lang === 'pt' ? 'Limpar todas as anotações?' : 'Clear all annotations?')) { setDiscoveryContent(''); if (editorRef.current) editorRef.current.innerHTML = ''; } }}>
+                      🗑️ {lang === 'pt' ? 'Limpar' : 'Clear'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="presentation-hint">
+                  💡 {lang === 'pt' ? 'Modo Apresentação: clique e arraste para destacar com rastro laser vermelho.' : 'Presentation Mode: click and drag to highlight with laser pointer.'}
+                </div>
+              )}
+            </div>
+
+            <div className="discovery-body">
+              <div className="discovery-paper-container">
+                <div 
+                  ref={editorRef}
+                  className="discovery-paper"
+                  contentEditable={discoveryMode === 'edit'}
+                  onInput={(e) => setDiscoveryContent(e.currentTarget.innerHTML)}
+                  onDrop={handleDrop}
+                  onDragOver={(e) => e.preventDefault()}
+                  onClick={handleEditorClick}
+                  placeholder={lang === 'pt' ? 'Escreva suas anotações aqui. Arraste imagens para soltar direto na folha...' : 'Write your notes here. Drag and drop images directly onto the paper...'}
+                />
+                
+                {discoveryMode === 'present' && (
+                  <canvas 
+                    ref={canvasRef}
+                    className="presentation-canvas"
+                    onPointerDown={handlePointerDown}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Goal Banner */}
         {activeGoal && (
           <div className="active-goal-banner">
@@ -1293,16 +1636,26 @@ ${userText}
               rows={1}
             />
             {activeGoal && (
-              <button
-                onClick={handleCoachOpen}
-                className={`btn-coach-inline ${coachOpen ? 'open' : ''}`}
-                title={t.coachTitle}
-              >
-                <Icons.Sparkles />
-                {!coachOpen && aiMessages.filter(m => m.sender === 'ai').length > 0 && (
-                  <span className="coach-badge">{aiMessages.filter(m => m.sender === 'ai').length}</span>
-                )}
-              </button>
+              <>
+                <button
+                  onClick={() => { setDiscoveryOpen(!discoveryOpen); setSelectedImage(null); }}
+                  className={`btn-discovery-inline ${discoveryOpen ? 'open' : ''}`}
+                  title={lang === 'pt' ? 'Descobrir' : 'Discover'}
+                  style={{ marginRight: '8px' }}
+                >
+                  <Icons.BookOpen />
+                </button>
+                <button
+                  onClick={handleCoachOpen}
+                  className={`btn-coach-inline ${coachOpen ? 'open' : ''}`}
+                  title={t.coachTitle}
+                >
+                  <Icons.Sparkles />
+                  {!coachOpen && aiMessages.filter(m => m.sender === 'ai').length > 0 && (
+                    <span className="coach-badge">{aiMessages.filter(m => m.sender === 'ai').length}</span>
+                  )}
+                </button>
+              </>
             )}
             <button onClick={handleSend} className="btn-send">
               <Icons.Send />

@@ -45,12 +45,17 @@ const translationsDict = {
     sidebarToggleClose: "Fechar",
     themeToggleLight: "Tema Claro",
     themeToggleDark: "Tema Escuro",
-    aiTitle: "Configuração do Coach IA",
+    aiTitle: "Personalidade do Coach IA",
     aiKeyPlaceholder: "Cole sua Gemini API Key...",
     aiKeyHelp: "Chave API grátis no Google AI Studio",
     aiBadge: "Coach IA",
-    aiError: "Erro ao consultar o Gemini. Usando Coach local...",
-    aiHelpNote: "Por padrão, o site usa o Coach local (grátis e sem configuração). Para um Coach inteligente, cole sua Gemini API Key acima.",
+    aiError: "Coach indisponível. Tente novamente mais tarde.",
+    coachQuickStuck: "💡 Travado",
+    coachQuickDistracted: "🛑 Distraído",
+    coachQuickMotivation: "🎯 Motivação",
+    personalitySgt: "Sargento (Direto e Rígido)",
+    personalitySoc: "Socrático (Reflexivo)",
+    personalityZen: "Zen (Apoiador e Calmo)",
     goalMetBtn: "Meta Batida!",
     activeGoalLabel: "Meta Atual",
     coachTitle: "Coach IA",
@@ -104,12 +109,17 @@ const translationsDict = {
     sidebarToggleClose: "Close",
     themeToggleLight: "Light Theme",
     themeToggleDark: "Dark Theme",
-    aiTitle: "AI Coach Config",
+    aiTitle: "AI Coach Personality",
     aiKeyPlaceholder: "Paste your Gemini API Key...",
     aiKeyHelp: "Get a free API key at Google AI Studio",
     aiBadge: "AI Coach",
-    aiError: "Error calling Gemini API. Falling back to local Coach...",
-    aiHelpNote: "By default, the site uses the local Coach (free & zero-config). For a smart Coach, paste your Gemini API Key above.",
+    aiError: "Coach unavailable right now. Try again later.",
+    coachQuickStuck: "💡 Stuck",
+    coachQuickDistracted: "🛑 Distracted",
+    coachQuickMotivation: "🎯 Motivation",
+    personalitySgt: "Sergeant (Strict & Direct)",
+    personalitySoc: "Socratic (Reflective)",
+    personalityZen: "Zen (Supportive & Calm)",
     goalMetBtn: "Goal Met!",
     activeGoalLabel: "Current Goal",
     coachTitle: "AI Coach",
@@ -371,6 +381,11 @@ export default function App() {
   // Gemini API Key state
   const [geminiKey, setGeminiKey] = useState(() => {
     return localStorage.getItem('focusflow_gemini_key') || '';
+  });
+
+  // Coach Personality state
+  const [coachPersonality, setCoachPersonality] = useState(() => {
+    return localStorage.getItem('focusflow_coach_personality') || 'zen';
   });
 
   // State: Goals & Thoughts
@@ -807,26 +822,12 @@ export default function App() {
     return recent.map(t => `[${t.timestamp}] ${t.text}`).join('\n');
   };
 
-  const runLocalCoachFallback = (userText) => {
+  const handleQuickReply = (text) => {
+    setAiInputText(text);
+    // Use a slight delay to allow React state to update before triggering send
     setTimeout(() => {
-      let response = "";
-      const lowerText = userText.toLowerCase();
-      if (lang === 'pt') {
-        if (lowerText.includes("como") || lowerText.includes("ajuda") || lowerText.includes("dificil") || lowerText.includes("difícil")) {
-          response = "Quebre essa meta em partes menores. Qual é a ação física mais simples que você pode fazer nos próximos 5 minutos?";
-        } else {
-          response = "Entendi. Mantenha o foco na sua meta principal. Se os pensamentos fugirem, jogue-os no bloco de notas ao lado e volte para a ação.";
-        }
-      } else {
-        if (lowerText.includes("how") || lowerText.includes("help") || lowerText.includes("hard")) {
-          response = "Break this goal down. What is the simplest physical action you can take in the next 5 minutes?";
-        } else {
-          response = "I hear you. Keep focusing on the main goal. If thoughts drift, dump them in the notepad and get back to action.";
-        }
-      }
-      setAiMessages(prev => [...prev, { id: Date.now(), text: response, sender: 'ai' }]);
-      setAiLoading(false);
-    }, 1000);
+      document.querySelector('.btn-send-coach')?.click();
+    }, 50);
   };
 
   const handleSendAiMessage = async () => {
@@ -839,52 +840,103 @@ export default function App() {
     setAiLoading(true);
 
     if (!geminiKey.trim()) {
-      runLocalCoachFallback(userText);
+      setAiMessages(prev => [...prev, { id: Date.now(), text: (lang === 'pt' ? 'Insira sua Gemini API Key nas configurações primeiro.' : 'Please add your Gemini API Key in settings first.'), sender: 'ai' }]);
+      setAiLoading(false);
       return;
     }
 
     try {
       const recentThoughtsText = getRecentThoughts();
-      const chatHistoryText = aiMessages
-        .map(m => `${m.sender === 'user' ? 'Usuário' : 'Coach'}: ${m.text}`)
-        .join('\n');
       
-      const systemPrompt = `Você é o FocusFlow AI Coach — um coach de foco e produtividade pessoal.
+      let personalityInstruction = "";
+      if (coachPersonality === "sgt") {
+        personalityInstruction = "Seja duro, direto, militar e não aceite desculpas. Exija execução imediata.";
+      } else if (coachPersonality === "soc") {
+        personalityInstruction = "Seja socrático. Responda primariamente com perguntas reflexivas e profundas para que o usuário ache a própria resposta.";
+      } else {
+        personalityInstruction = "Seja extremamente calmo, apoiador, compreensivo e focado em mindfulness. Incentive a redução da ansiedade.";
+      }
+
+      // Limpar o conteúdo HTML do discovery para enviar em texto puro
+      const rawDiscoveryText = (discoveryContent || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      const discoveryContext = rawDiscoveryText 
+        ? `## PAINEL DE DISCOVERY (Fundação do Objetivo)\nEsta é a fundação central do objetivo final do usuário. Ele representa a pesquisa bruta e o brainstorm principal do projeto:\n"${rawDiscoveryText}"`
+        : `## PAINEL DE DISCOVERY\n(O usuário ainda não preencheu o painel de discovery. Se achar necessário, sugira sutilmente que ele use a aba "Descobrir" para estruturar a base da meta).`;
+
+      const systemPrompt = `Você é o FocusFlow AI Coach — um coach de foco e produtividade pessoal de alta performance.
+Sua missão é ajudar o usuário a destravar, manter o foco e executar suas tarefas com clareza.
+ESTILO OBRIGATÓRIO (Personalidade escolhida): ${personalityInstruction}
+
+## O CONTEXTO DESTE APLICATIVO
+O FocusFlow é um ambiente de foco profundo. O usuário define uma "Meta Atual", despeja "Pensamentos" rápidos (Thoughts) na lateral para não se distrair, e usa um painel especial chamado "Discovery" para estruturar a pesquisa e a fundação do seu objetivo final.
 
 ## META ATUAL DO USUÁRIO
 "${activeGoal.text}"
-(Meta definida em: ${activeGoal.timestamp})
 
-## ANOTAÇÕES DO USUÁRIO (registradas durante esta sessão de foco)
-${recentThoughtsText || '(Nenhuma anotação feita ainda nesta sessão)'}
+${discoveryContext}
 
-## HISTÓRICO DA NOSSA CONVERSA
-${chatHistoryText || '(Início da conversa)'}
+## PENSAMENTOS RECENTES DO USUÁRIO (Rascunhos ou distrações periféricas)
+${recentThoughtsText || '(Nenhum pensamento avulso registrado ainda)'}
 
-## NOVA MENSAGEM DO USUÁRIO
-${userText}
+## INSTRUÇÕES DIRETRIZES PARA A SUA RESPOSTA
+1. Analise o Discovery e os Pensamentos do usuário. Tudo está interligado e eles são a base para o sucesso da meta.
+2. Seja prático. Use o contexto do projeto dele para sugerir o próximo passo concreto.
+3. Não seja genérico. Você conhece os bastidores do projeto através do Discovery.
+4. Responda de forma direta e concisa. Máximo de 3 parágrafos curtos.
+5. Responda estritamente no idioma: ${lang === 'pt' ? 'Português do Brasil' : 'English'}.`;
 
-## INSTRUÇÕES PARA RESPOSTA
-- Leia TODA a meta e TODAS as anotações do usuário para dar uma resposta contextualizada
-- Seja direto, empático e prático — ajude o usuário a dar o próximo passo concreto
-- Se o usuário estiver travado, sugira a menor ação possível para destravar
-- Se o usuário estiver divagando, traga-o de volta à meta com gentileza
-- Máximo de 3 parágrafos curtos. Sem jargões. Sem listas longas.
-- Responda em ${lang === 'pt' ? 'Português do Brasil' : 'English'}.`;
+      // Format chat history for Gemini
+      const chatHistoryText = aiMessages
+        .map(m => `${m.sender === 'user' ? 'Usuário' : 'Coach'}: ${m.text}`)
+        .join('\n');
+
+
+
+      const fullPrompt = `${systemPrompt}\n\nHistórico:\n${chatHistoryText}\n\nUsuário: ${userText}\nCoach:`;
+
+      // Dynamically discover available models to prevent 404 errors
+      const modelsResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`);
+      if (!modelsResponse.ok) {
+        throw new Error(`Model API Error HTTP ${modelsResponse.status}: ${await modelsResponse.text()}`);
+      }
+      
+      const modelsData = await modelsResponse.json();
+      if (!modelsData.models || modelsData.models.length === 0) {
+        throw new Error("Nenhum modelo disponível para esta chave API.");
+      }
+
+      // Try to find a flash model first, fallback to pro, then fallback to anything gemini
+      let targetModel = modelsData.models.find(m => m.name.includes("flash") && m.supportedGenerationMethods?.includes("generateContent"))?.name;
+      if (!targetModel) {
+        targetModel = modelsData.models.find(m => m.name.includes("pro") && m.supportedGenerationMethods?.includes("generateContent"))?.name;
+      }
+      if (!targetModel) {
+        targetModel = modelsData.models.find(m => m.name.includes("gemini") && m.supportedGenerationMethods?.includes("generateContent"))?.name;
+      }
+      if (!targetModel) {
+        targetModel = modelsData.models[0].name; // fallback to very first
+      }
+
+      // Strip "models/" prefix if it's there for the URL
+      const cleanModelName = targetModel.replace("models/", "");
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${cleanModelName}:generateContent?key=${geminiKey}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: systemPrompt }] }],
-            generationConfig: { maxOutputTokens: 300, temperature: 0.7 }
+            contents: [{ parts: [{ text: fullPrompt }] }],
+            generationConfig: { maxOutputTokens: 500, temperature: 0.7 }
           })
         }
       );
 
-      if (!response.ok) throw new Error("API Error");
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`HTTP ${response.status}: ${errorText}`);
+      }
+      
       const data = await response.json();
       if (!data.candidates || data.candidates.length === 0) throw new Error("No candidates");
 
@@ -892,9 +944,9 @@ ${userText}
       setAiMessages(prev => [...prev, { id: Date.now(), text: aiText, sender: 'ai' }]);
       setAiLoading(false);
     } catch (e) {
-      console.warn(e);
-      setAiMessages(prev => [...prev, { id: Date.now(), text: t.aiError, sender: 'ai' }]);
-      runLocalCoachFallback(userText);
+      console.error(e);
+      setAiMessages(prev => [...prev, { id: Date.now(), text: `${t.aiError}\n(Motivo: ${e.message})`, sender: 'ai' }]);
+      setAiLoading(false);
     }
   };
 
@@ -1421,7 +1473,7 @@ ${userText}
 
           <div className="sidebar-section">
             <h3 className="sidebar-section-title">{t.aiTitle}</h3>
-            <div className="ai-key-input-container">
+            <div className="ai-key-input-container" style={{ marginBottom: '12px' }}>
               <input
                 type="password"
                 value={geminiKey}
@@ -1433,9 +1485,33 @@ ${userText}
                 className="ai-input"
               />
               <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', lineHeight: '1.4', marginTop: '6px', display: 'block' }}>
-                {t.aiHelpNote}
+                {t.aiKeyHelp}
               </span>
             </div>
+            
+            <select
+              value={coachPersonality}
+              onChange={(e) => {
+                setCoachPersonality(e.target.value);
+                localStorage.setItem('focusflow_coach_personality', e.target.value);
+              }}
+              style={{
+                width: '100%',
+                background: 'var(--surface-1)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                outline: 'none',
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.85rem',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="zen">{t.personalityZen}</option>
+              <option value="soc">{t.personalitySoc}</option>
+              <option value="sgt">{t.personalitySgt}</option>
+            </select>
           </div>
 
 
@@ -1785,6 +1861,11 @@ ${userText}
                   </div>
                 )}
                 <div ref={aiChatEndRef} />
+              </div>
+              <div className="coach-quick-replies" style={{ display: 'flex', gap: '6px', padding: '0 16px 12px', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                <button className="quick-reply-btn" onClick={() => handleQuickReply(lang === 'pt' ? 'Estou travado, não sei por onde começar.' : 'I am stuck, do not know where to start.')}>{t.coachQuickStuck}</button>
+                <button className="quick-reply-btn" onClick={() => handleQuickReply(lang === 'pt' ? 'Me distraí, me ajude a voltar.' : 'I got distracted, help me get back.')}>{t.coachQuickDistracted}</button>
+                <button className="quick-reply-btn" onClick={() => handleQuickReply(lang === 'pt' ? 'Preciso de motivação agora.' : 'I need some motivation right now.')}>{t.coachQuickMotivation}</button>
               </div>
               <div className="coach-input-area">
                 <textarea

@@ -56,8 +56,12 @@ const translationsDict = {
     coachTitle: "Coach IA",
     coachInputPlaceholder: "Converse com seu coach...",
     coachThinking: "Coach digitando...",
-    coachSendBtn: "Enviar",
-    coachGreetingText: "Olá! Vi que você definiu uma nova meta: '{goal}'. Como posso te ajudar a quebrar isso em passos menores para começarmos?"
+    coachGreetingText: "Olá! Vi que você definiu uma nova meta: '{goal}'. Como posso te ajudar a quebrar isso em passos menores para começarmos?",
+    soundLofi: "Lofi Beats (YouTube)",
+    soundLofiRadio: "Lofi Girl Rádio Ao Vivo",
+    soundLofiStudy: "Lofi Estudo Relaxante",
+    soundLofiSleep: "Lofi Girl para Dormir",
+    soundLofiSynth: "Lofi Synthwave"
   },
   en: {
     appTitle: "FocusFlow",
@@ -114,8 +118,12 @@ const translationsDict = {
     coachSendBtn: "Send",
     coachGreetingText: "Hi! I see you set a new goal: '{goal}'. How can I help you break this down into smaller steps to get started?",
     modeThought: "Thought",
-    modeReminder: "Reminder",
-    unpinReminder: "Unpin"
+    unpinReminder: "Unpin",
+    soundLofi: "Lofi Beats (YouTube)",
+    soundLofiRadio: "Lofi Girl Live Radio",
+    soundLofiStudy: "Lofi Relaxing Study",
+    soundLofiSleep: "Lofi Girl Sleep",
+    soundLofiSynth: "Lofi Synthwave"
   }
 };
 
@@ -1430,19 +1438,7 @@ ${userText}
             </div>
           </div>
 
-          <div className="sidebar-section">
-            <h3 className="sidebar-section-title">{t.statsTitle}</h3>
-            <div className="stats-grid">
-              <div className="stat-card">
-                <span className="stat-val">{getTotalWords()}</span>
-                <span className="stat-label">{t.statWords}</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-val">{wpm} <span style={{ fontSize: '0.6rem' }}>{t.statWpmVal}</span></span>
-                <span className="stat-label">{t.statWpm}</span>
-              </div>
-            </div>
-          </div>
+
 
           <div className="sidebar-section" style={{ marginTop: 'auto' }}>
             <div className={`persistence-toggle-container ${saveSession ? 'toggle-active' : ''}`} onClick={() => setSaveSession(!saveSession)}>

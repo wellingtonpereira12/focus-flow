@@ -299,7 +299,7 @@ export default function SoundController({ translations }) {
       </div>
 
       {/* Lofi Girl YouTube Radio Integration */}
-      <div className="sound-item">
+      <div className="sound-item lofi-player-card">
         <div className="sound-header">
           <div className="sound-info">
             <SoundIcon />
@@ -315,40 +315,56 @@ export default function SoundController({ translations }) {
           </button>
         </div>
 
-        {lofiActive && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-            <select
-              value={selectedLofiTrack}
-              onChange={(e) => setSelectedLofiTrack(e.target.value)}
-              style={{
-                width: '100%',
-                background: 'var(--surface-1)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
-                padding: '8px',
-                borderRadius: '8px',
-                outline: 'none',
-                fontFamily: 'var(--font-body)',
-                fontSize: '0.85rem'
-              }}
-            >
-              <option value="live">{translations.soundLofiRadio}</option>
-              <option value="study">{translations.soundLofiStudy}</option>
-            </select>
+        {lofiActive && (() => {
+            const lofiTracks = [
+              { id: 'study', name: translations.soundLofiStudy || 'Lofi Estudo Relaxante', videoId: '-FlxM_0S2lA' },
+              { id: 'sleep', name: translations.soundLofiSleep || 'Lofi Girl para Dormir', videoId: 'DWcJYnA4GrY' },
+              { id: 'synth', name: translations.soundLofiSynth || 'Lofi Synthwave', videoId: '4xDzrJKXOOY' },
+              { id: 'radio', name: translations.soundLofiRadio || 'Lofi Girl Rádio Ao Vivo', videoId: 'hHW1oY26kxQ' }
+            ];
 
-            <iframe
-              src={
-                selectedLofiTrack === 'live'
-                  ? "https://www.youtube.com/embed/live_stream?channel=UCSJ4gkVC6NrvII8umztf0Ow&autoplay=1"
-                  : "https://www.youtube.com/embed/-FlxM_0S2lA?autoplay=1"
-              }
-              title="Lofi Girl Radio"
-              style={{ width: '100%', height: '140px', borderRadius: '8px', border: 'none', background: '#000' }}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            ></iframe>
-          </div>
-        )}
+            const currentTrack = lofiTracks.find(t => t.id === selectedLofiTrack) || lofiTracks[0];
+            const lofiHint = translations.soundBrown.includes('Marrom')
+              ? 'Se o som não iniciar automaticamente, clique no Play do YouTube no vídeo acima.'
+              : 'If sound doesn\'t play automatically, click the YouTube Play button on the video above.';
+
+            return (
+              <div className="lofi-player-content">
+                <div className="lofi-vinyl-wrapper">
+                  <div className={`lofi-vinyl ${lofiActive ? 'spinning' : ''}`}>
+                    <div className="lofi-vinyl-center"></div>
+                  </div>
+                  <div className="lofi-track-details">
+                    <span className="lofi-track-title">{currentTrack.name}</span>
+                    <span className="lofi-track-status">YouTube Player</span>
+                  </div>
+                </div>
+
+                <select
+                  value={selectedLofiTrack}
+                  onChange={(e) => setSelectedLofiTrack(e.target.value)}
+                  className="lofi-track-select"
+                >
+                  {lofiTracks.map(track => (
+                    <option key={track.id} value={track.id}>{track.name}</option>
+                  ))}
+                </select>
+
+                <div className="lofi-iframe-wrapper">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${currentTrack.videoId}?autoplay=1&enablejsapi=1`}
+                    title="Lofi Radio Player"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+                
+                <div className="lofi-player-hint">
+                  💡 {lofiHint}
+                </div>
+              </div>
+            );
+          })()}
       </div>
     </div>
   );

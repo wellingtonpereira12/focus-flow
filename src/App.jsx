@@ -326,7 +326,10 @@ export default function App() {
   
   // Discovery Workspace States
   const [discoveryOpen, setDiscoveryOpen] = useState(false);
-  const [discoveryContent, setDiscoveryContent] = useState('');
+  const [discoveryContent, setDiscoveryContent] = useState(() => {
+    if (localStorage.getItem('focusflow_savesession') === 'false') return '';
+    return localStorage.getItem('focusflow_discovery_content') || '';
+  });
   const [discoveryMode, setDiscoveryMode] = useState('edit'); // 'edit' or 'present'
   const [selectedImage, setSelectedImage] = useState(null);
   const [discoveryFullscreen, setDiscoveryFullscreen] = useState(false);
@@ -414,10 +417,12 @@ export default function App() {
       localStorage.removeItem('focusflow_ai_messages');
       localStorage.removeItem('focusflow_sessions');
       localStorage.removeItem('focusflow_active_session_id');
+      localStorage.removeItem('focusflow_discovery_content');
     } else {
       localStorage.setItem('focusflow_thoughts', JSON.stringify(thoughts));
       localStorage.setItem('focusflow_ai_messages', JSON.stringify(aiMessages));
       localStorage.setItem('focusflow_sessions', JSON.stringify(sessions));
+      localStorage.setItem('focusflow_discovery_content', discoveryContent);
       if (activeSessionId) {
         localStorage.setItem('focusflow_active_session_id', activeSessionId.toString());
       } else {
@@ -431,7 +436,7 @@ export default function App() {
         localStorage.removeItem('focusflow_goal_start_time');
       }
     }
-  }, [saveSession, thoughts, activeGoal, aiMessages, goalStartTime, sessions, activeSessionId, sidebarExpanded]);
+  }, [saveSession, thoughts, activeGoal, aiMessages, goalStartTime, sessions, activeSessionId, sidebarExpanded, discoveryContent]);
 
   // Sincroniza as alterações do chat ativo de volta para a lista global de sessões
   useEffect(() => {

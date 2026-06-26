@@ -2325,6 +2325,8 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
 .discovery-paper {
   flex: 1;
+  position: relative; /* Essential for absolute positioning of images */
+  min-height: 100%;
   background: var(--bg-color);
   border: none;
   border-radius: 0;

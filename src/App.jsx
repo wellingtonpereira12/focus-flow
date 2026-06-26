@@ -336,6 +336,7 @@ export default function App() {
   const isDrawingRef = useRef(false);
   const pointsRef = useRef([]); // Laser pointer trail points
   const pointerPosRef = useRef({ x: -100, y: -100 });
+  const dragInfoRef = useRef({ isDragging: false, img: null, startX: 0, startY: 0, startLeft: 0, startTop: 0 });
 
   // Gemini API Key state
   const [geminiKey, setGeminiKey] = useState(() => {
@@ -1087,11 +1088,17 @@ ${userText}
   };
 
   const insertImage = (base64) => {
+    const x = 50;
+    const y = 50;
+    insertImageAtPos(base64, x, y);
+  };
+
+  const insertImageAtPos = (base64, x, y) => {
     const imgId = 'img-' + Date.now();
-    const imgHtml = `<img id="${imgId}" src="${base64}" class="discovery-image" style="width: 50%; display: block; margin: 10px 0;" />`;
+    // Default size is 300px, position is absolute relative to paper, cursor is grab/grabbing
+    const imgHtml = `<img id="${imgId}" src="${base64}" class="discovery-image" style="position: absolute; left: ${x}px; top: ${y}px; width: 300px; cursor: move; margin: 0; display: block; touch-action: none;" />`;
     if (editorRef.current) {
-      editorRef.current.focus();
-      document.execCommand('insertHTML', false, imgHtml);
+      editorRef.current.insertAdjacentHTML('beforeend', imgHtml);
       setDiscoveryContent(editorRef.current.innerHTML);
     }
   };
@@ -1104,24 +1111,60 @@ ${userText}
     if (files && files.length > 0) {
       const file = files[0];
       if (file.type.startsWith('image/')) {
-        // Find caret position at drop point
-        if (document.caretRangeFromPoint) {
-          const range = document.caretRangeFromPoint(e.clientX, e.clientY);
-          const selection = window.getSelection();
-          selection.removeAllRanges();
-          selection.addRange(range);
-        } else if (document.caretPositionFromPoint) {
-          const position = document.caretPositionFromPoint(e.clientX, e.clientY);
-          const range = document.createRange();
-          range.setStart(position.offsetNode, position.offset);
-          range.collapse(true);
-          const selection = window.getSelection();
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
+        // Calculate coordinates relative to editor paper
+        const rect = editorRef.current.getBoundingClientRect();
+        const scrollLeft = editorRef.current.scrollLeft || 0;
+        const scrollTop = editorRef.current.scrollTop || 0;
+        const x = e.clientX - rect.left + scrollLeft;
+        const y = e.clientY - rect.top + scrollTop;
         
         const base64 = await compressImage(file);
-        insertImage(base64);
+        insertImageAtPos(base64, x, y);
+      }
+    }
+  };
+
+  const handlePointerDownImage = (e) => {
+    if (discoveryMode !== 'edit') return;
+    if (e.target.tagName === 'IMG') {
+      e.preventDefault();
+      const img = e.target;
+      setSelectedImage(img);
+      
+      const imgLeft = parseInt(img.style.left) || 0;
+      const imgTop = parseInt(img.style.top) || 0;
+      
+      dragInfoRef.current = {
+        isDragging: true,
+        img: img,
+        startX: e.clientX,
+        startY: e.clientY,
+        startLeft: imgLeft,
+        startTop: imgTop
+      };
+      
+      img.setPointerCapture(e.pointerId);
+    }
+  };
+
+  const handlePointerMoveImage = (e) => {
+    const info = dragInfoRef.current;
+    if (info.isDragging && info.img) {
+      const dx = e.clientX - info.startX;
+      const dy = e.clientY - info.startY;
+      info.img.style.left = (info.startLeft + dx) + 'px';
+      info.img.style.top = (info.startTop + dy) + 'px';
+    }
+  };
+
+  const handlePointerUpImage = (e) => {
+    const info = dragInfoRef.current;
+    if (info.isDragging && info.img) {
+      info.img.releasePointerCapture(e.pointerId);
+      dragInfoRef.current = { isDragging: false, img: null, startX: 0, startY: 0, startLeft: 0, startTop: 0 };
+      
+      if (editorRef.current) {
+        setDiscoveryContent(editorRef.current.innerHTML);
       }
     }
   };
@@ -1473,6 +1516,9 @@ ${userText}
                   onDrop={handleDrop}
                   onDragOver={(e) => e.preventDefault()}
                   onClick={handleEditorClick}
+                  onPointerDown={handlePointerDownImage}
+                  onPointerMove={handlePointerMoveImage}
+                  onPointerUp={handlePointerUpImage}
                   placeholder={lang === 'pt' ? 'Escreva suas anotações aqui. Arraste imagens para soltar direto na folha...' : 'Write your notes here. Drag and drop images directly onto the paper...'}
                 />
                 

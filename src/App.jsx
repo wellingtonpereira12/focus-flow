@@ -1562,6 +1562,43 @@ ${userText}
                     <button className="toolbar-btn" onMouseDown={(e) => { e.preventDefault(); document.execCommand('insertOrderedList', false, null); }} title="Lista Numerada">1. Lista</button>
                   </div>
                   <div className="toolbar-group">
+                    <select 
+                      className="toolbar-select"
+                      onChange={(e) => {
+                        const font = e.target.value;
+                        if (font) document.execCommand('fontName', false, font);
+                        e.target.value = '';
+                      }}
+                      title={lang === 'pt' ? 'Fonte' : 'Font'}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>{lang === 'pt' ? 'Fonte' : 'Font'}</option>
+                      <option value="Inter, sans-serif">Inter</option>
+                      <option value="'Outfit', sans-serif">Outfit</option>
+                      <option value="'Lora', serif">Lora</option>
+                      <option value="'Fira Mono', monospace">Fira Mono</option>
+                      <option value="'Caveat', cursive">Caveat</option>
+                    </select>
+
+                    <select 
+                      className="toolbar-select"
+                      onChange={(e) => {
+                        const size = e.target.value;
+                        if (size) document.execCommand('fontSize', false, size);
+                        e.target.value = '';
+                      }}
+                      title={lang === 'pt' ? 'Tamanho' : 'Size'}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>{lang === 'pt' ? 'Tamanho' : 'Size'}</option>
+                      <option value="2">{lang === 'pt' ? 'Pequeno' : 'Small'}</option>
+                      <option value="3">{lang === 'pt' ? 'Normal' : 'Normal'}</option>
+                      <option value="5">{lang === 'pt' ? 'Grande' : 'Large'}</option>
+                      <option value="6">{lang === 'pt' ? 'Muito Grande' : 'Very Large'}</option>
+                      <option value="7">{lang === 'pt' ? 'Título' : 'Title'}</option>
+                    </select>
+                  </div>
+                  <div className="toolbar-group">
                     <label className="toolbar-btn image-upload-label" title="Inserir Imagem">
                       🖼️ {lang === 'pt' ? 'Imagem' : 'Image'}
                       <input 

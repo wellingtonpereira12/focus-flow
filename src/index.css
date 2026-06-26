@@ -2264,6 +2264,31 @@ input[type="range"]::-webkit-slider-thumb:hover {
   outline: none;
 }
 
+.toolbar-select {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+  transition: all 0.15s;
+}
+
+.toolbar-select:hover {
+  background: var(--border);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.toolbar-select option {
+  background: var(--bg-color);
+  color: var(--text-primary);
+}
+
 .toolbar-btn:hover {
   background: var(--border);
   color: var(--text-primary);

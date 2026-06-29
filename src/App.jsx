@@ -1073,9 +1073,12 @@ ${recentThoughtsText || '(Nenhum pensamento avulso registrado ainda)'}
     let animationFrameId;
     
     const updateSize = () => {
-      const rect = canvas.getBoundingClientRect();
+      if (!editorRef.current) return;
+      const rect = editorRef.current.getBoundingClientRect();
       canvas.width = rect.width;
-      canvas.height = rect.height;
+      canvas.height = editorRef.current.scrollHeight;
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = editorRef.current.scrollHeight + 'px';
     };
     updateSize();
     window.addEventListener('resize', updateSize);

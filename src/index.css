@@ -858,7 +858,7 @@ body {
 }
 
 /* Deslocar a tela de Descoberta quando o Coach estiver expandido no workspace */
-.workspace-middle:has(.coach-popup.expanded) ~ .discovery-workspace:not(.fullscreen) {
+.main-content:has(.coach-popup.expanded) .discovery-workspace:not(.fullscreen) {
   right: 450px !important;
 }
 @keyframes popupIn {
